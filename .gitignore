@@ -1,0 +1,12 @@
+node_modules/
+.vitepress/cache
+.vitepress/dist
+.cursor/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+build/
+dist/
+.docserver-manifest.json
+.vitepress/sidebar.generated.json
