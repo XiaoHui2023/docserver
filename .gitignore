@@ -8,5 +8,6 @@ __pycache__/
 .pytest_cache/
 build/
 dist/
+*.egg-info/
 .docserver-manifest.json
 .vitepress/sidebar.generated.json

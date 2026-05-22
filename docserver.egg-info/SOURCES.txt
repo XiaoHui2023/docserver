@@ -1,8 +1,0 @@
-README.md
-pyproject.toml
-docserver.egg-info/PKG-INFO
-docserver.egg-info/SOURCES.txt
-docserver.egg-info/dependency_links.txt
-docserver.egg-info/requires.txt
-docserver.egg-info/top_level.txt
-tests/test_sync.py
