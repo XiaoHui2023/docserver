@@ -24,9 +24,25 @@ def install_theme_assets(work_root: Path) -> None:
         return
     work_root = work_root.resolve()
     docs = docs_dir(work_root)
+    stylesheets = docs / "stylesheets"
+    javascripts = docs / "javascripts"
 
-    css_src = _REPO_THEME / "github.css"
-    if css_src.is_file():
-        dest_css = docs / "stylesheets" / "github.css"
-        dest_css.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(css_src, dest_css)
+    base_css = _REPO_THEME / "docserver-base.css"
+    if base_css.is_file():
+        stylesheets.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(base_css, stylesheets / "docserver-base.css")
+
+    palettes_src = _REPO_THEME / "palettes"
+    if palettes_src.is_dir():
+        dest_palettes = stylesheets / "palettes"
+        dest_palettes.mkdir(parents=True, exist_ok=True)
+        for item in palettes_src.glob("*.css"):
+            if item.is_file():
+                shutil.copy2(item, dest_palettes / item.name)
+
+    js_src = _REPO_THEME / "javascripts"
+    if js_src.is_dir():
+        javascripts.mkdir(parents=True, exist_ok=True)
+        for item in js_src.iterdir():
+            if item.is_file():
+                shutil.copy2(item, javascripts / item.name)

@@ -11,7 +11,13 @@ from staging import sync_to_work
 from theme_assets import install_theme_assets
 
 
-def _run_mkdocs(config_path: Path, out_root: Path, *, verbose: bool) -> None:
+def _run_mkdocs(
+  config_path: Path,
+  out_root: Path,
+  *,
+  verbose: bool,
+  clean_site: bool = True,
+) -> None:
   cmd = [
     sys.executable,
     "-m",
@@ -21,14 +27,15 @@ def _run_mkdocs(config_path: Path, out_root: Path, *, verbose: bool) -> None:
     str(config_path),
     "-d",
     str(out_root),
-    "--clean",
   ]
+  if clean_site:
+    cmd.append("--clean")
   if verbose:
     print("执行:", " ".join(cmd))
   subprocess.run(cmd, check=True)
 
 
-def build_docs(
+def prepare_work(
   source: Path,
   out_root: Path,
   *,
@@ -37,8 +44,8 @@ def build_docs(
   site_name: str = "文档",
   clean: bool = False,
   verbose: bool = False,
-) -> int:
-  """将源目录构建为可部署的静态站点。"""
+) -> tuple[Path, int]:
+  """同步源目录到工作区并生成 mkdocs.yml，返回 (config_path, 页面数)。"""
   source = source.resolve()
   out_root = out_root.resolve()
   out_root.mkdir(parents=True, exist_ok=True)
@@ -58,8 +65,44 @@ def build_docs(
   )
 
   if verbose:
-    print(f"已准备 {page_count} 个页面、{pages_written} 个 .pages，base_url={normalize_base_url(base_url)!r}")
+    print(
+      f"已准备 {page_count} 个页面、{pages_written} 个 .pages，"
+      f"base_url={normalize_base_url(base_url)!r}"
+    )
     print(f"site_url: {site_url or site_url_from_base(base_url)}")
 
-  _run_mkdocs(config_path, out_root, verbose=verbose)
+  return config_path, page_count
+
+
+def build_docs(
+  source: Path,
+  out_root: Path,
+  *,
+  base_url: str = "/",
+  site_url: str | None = None,
+  site_name: str = "文档",
+  clean: bool = False,
+  verbose: bool = False,
+) -> int:
+  """将源目录构建为可部署的静态站点。"""
+  config_path, page_count = prepare_work(
+    source,
+    out_root,
+    base_url=base_url,
+    site_url=site_url,
+    site_name=site_name,
+    clean=clean,
+    verbose=verbose,
+  )
+  _run_mkdocs(config_path, out_root.resolve(), verbose=verbose, clean_site=True)
   return page_count
+
+
+def rebuild_docs(
+  config_path: Path,
+  out_root: Path,
+  *,
+  verbose: bool = False,
+) -> None:
+  """增量重建（不 --clean），供 watch 在静态服务运行时使用。"""
+  _run_mkdocs(config_path, out_root.resolve(), verbose=verbose, clean_site=False)

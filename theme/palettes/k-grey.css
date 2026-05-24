@@ -1,0 +1,78 @@
+/* 方案 K：纯灰极简（需 html[data-docserver-style="k"]） */
+
+html[data-docserver-style="k"] [data-md-color-scheme="default"] {
+  --md-default-bg-color: #fafbfc;
+  --md-default-fg-color: #37474f;
+  --md-default-fg-color--light: #607d8b;
+  --md-default-fg-color--lightest: #cfd8dc;
+  --md-code-bg-color: #eceff1;
+  --md-primary-fg-color: #455a64;
+  --md-primary-bg-color: #eceff1;
+  --md-accent-fg-color: #1565c0;
+  --md-typeset-a-color: #1565c0;
+  --md-footer-bg-color: #eceff1;
+}
+
+html[data-docserver-style="k"] [data-md-color-scheme="slate"] {
+  --md-default-bg-color: #263238;
+  --md-default-fg-color: #eceff1;
+  --md-default-fg-color--light: #90a4ae;
+  --md-default-fg-color--lightest: #455a64;
+  --md-code-bg-color: #37474f;
+  --md-primary-fg-color: #eceff1;
+  --md-primary-bg-color: #37474f;
+  --md-accent-fg-color: #64b5f6;
+  --md-typeset-a-color: #64b5f6;
+  --md-footer-bg-color: #263238;
+  --md-hue: 200;
+}
+
+html[data-docserver-style="k"] [data-md-color-scheme="default"] .md-header {
+  background-color: #eceff1;
+  color: #37474f;
+  box-shadow: inset 0 -1px #cfd8dc;
+}
+
+html[data-docserver-style="k"] [data-md-color-scheme="default"] :is(.md-header__title, .md-header__button) {
+  color: #37474f;
+}
+
+html[data-docserver-style="k"] [data-md-color-scheme="slate"] .md-header {
+  background-color: #37474f;
+  color: #eceff1;
+  box-shadow: inset 0 -1px #455a64;
+}
+
+html[data-docserver-style="k"] [data-md-color-scheme="slate"] :is(.md-header__title, .md-header__button) {
+  color: #eceff1;
+}
+
+html[data-docserver-style="k"] [data-md-color-scheme="default"] .md-sidebar--primary {
+  background-color: #eceff1;
+}
+
+html[data-docserver-style="k"] [data-md-color-scheme="default"] .md-sidebar__scrollwrap {
+  border-right: 1px solid #cfd8dc;
+}
+
+html[data-docserver-style="k"] [data-md-color-scheme="slate"] .md-sidebar--primary {
+  background-color: #263238;
+}
+
+html[data-docserver-style="k"] [data-md-color-scheme="slate"] .md-sidebar__scrollwrap {
+  border-right: 1px solid #455a64;
+}
+
+html[data-docserver-style="k"] [data-md-color-scheme="default"] .md-nav__link--active {
+  color: #263238;
+  font-weight: 600;
+  background-color: #cfd8dc;
+  border-radius: 6px;
+}
+
+html[data-docserver-style="k"] [data-md-color-scheme="slate"] .md-nav__link--active {
+  color: #ffffff;
+  font-weight: 600;
+  background-color: #455a64;
+  border-radius: 6px;
+}

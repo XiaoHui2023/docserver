@@ -1,0 +1,85 @@
+/* 方案 I：GitHub 经典（需 html[data-docserver-style="i"]） */
+
+html[data-docserver-style="i"] :is(:root, [data-md-color-scheme="default"]) {
+  --md-text-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --md-code-font: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+html[data-docserver-style="i"] [data-md-color-scheme="default"] {
+  --md-default-bg-color: #ffffff;
+  --md-default-fg-color: #1f2328;
+  --md-default-fg-color--light: #656d76;
+  --md-default-fg-color--lightest: #d0d7de;
+  --md-code-bg-color: #f6f8fa;
+  --md-primary-fg-color: #1f2328;
+  --md-primary-bg-color: #ffffff;
+  --md-accent-fg-color: #0969da;
+  --md-typeset-a-color: #0969da;
+  --md-footer-bg-color: #f6f8fa;
+}
+
+html[data-docserver-style="i"] [data-md-color-scheme="slate"] {
+  --md-default-bg-color: #0d1117;
+  --md-default-fg-color: #e6edf3;
+  --md-default-fg-color--light: #8b949e;
+  --md-default-fg-color--lightest: #30363d;
+  --md-code-bg-color: #161b22;
+  --md-primary-fg-color: #e6edf3;
+  --md-primary-bg-color: #0d1117;
+  --md-accent-fg-color: #4493f8;
+  --md-typeset-a-color: #4493f8;
+  --md-footer-bg-color: #0d1117;
+  --md-hue: 212;
+}
+
+html[data-docserver-style="i"] [data-md-color-scheme="default"] .md-header {
+  background-color: #ffffff;
+  color: #1f2328;
+  box-shadow: inset 0 -1px #d0d7de;
+}
+
+html[data-docserver-style="i"] [data-md-color-scheme="default"] :is(.md-header__title, .md-header__button) {
+  color: #1f2328;
+}
+
+html[data-docserver-style="i"] [data-md-color-scheme="slate"] .md-header {
+  background-color: #161b22;
+  color: #e6edf3;
+  box-shadow: inset 0 -1px #30363d;
+}
+
+html[data-docserver-style="i"] [data-md-color-scheme="slate"] :is(.md-header__title, .md-header__button) {
+  color: #e6edf3;
+}
+
+html[data-docserver-style="i"] [data-md-color-scheme="default"] .md-sidebar--primary {
+  background-color: #ffffff;
+}
+
+html[data-docserver-style="i"] [data-md-color-scheme="default"] .md-sidebar__scrollwrap {
+  border-right: 1px solid #d0d7de;
+}
+
+html[data-docserver-style="i"] [data-md-color-scheme="slate"] .md-sidebar--primary {
+  background-color: #0d1117;
+}
+
+html[data-docserver-style="i"] [data-md-color-scheme="slate"] .md-sidebar__scrollwrap {
+  border-right: 1px solid #30363d;
+}
+
+html[data-docserver-style="i"] [data-md-color-scheme="default"] .md-nav__link--active {
+  color: #1f2328;
+  font-weight: 600;
+  background-color: #eaeef2;
+  border-radius: 6px;
+}
+
+html[data-docserver-style="i"] [data-md-color-scheme="slate"] .md-nav__link--active {
+  color: #ffffff;
+  font-weight: 600;
+  background-color: #21262d;
+  border-radius: 6px;
+}

@@ -1,14 +1,13 @@
-/* 方案 J：GitHub 灰栏（grey + blue）；像素级接近 GitHub Docs / github.com */
+/* 方案 J：GitHub 灰栏（需 html[data-docserver-style="j"]） */
 
-:root,
-[data-md-color-scheme="default"] {
+html[data-docserver-style="j"] :is(:root, [data-md-color-scheme="default"]) {
   --md-text-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica,
     Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   --md-code-font: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
 }
 
-[data-md-color-scheme="default"] {
+html[data-docserver-style="j"] [data-md-color-scheme="default"] {
   --md-default-bg-color: #ffffff;
   --md-default-fg-color: #1f2328;
   --md-default-fg-color--light: #656d76;
@@ -28,7 +27,7 @@
   --md-footer-fg-color: #656d76;
 }
 
-[data-md-color-scheme="slate"] {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] {
   --md-default-bg-color: #0d1117;
   --md-default-fg-color: #e6edf3;
   --md-default-fg-color--light: #8b949e;
@@ -49,205 +48,149 @@
   --md-hue: 212;
 }
 
-[data-md-color-scheme="default"] .md-header {
+html[data-docserver-style="j"] [data-md-color-scheme="default"] .md-header {
   background-color: #f6f8fa;
   color: #1f2328;
   box-shadow: inset 0 -1px #d0d7de;
 }
 
-[data-md-color-scheme="default"] .md-header__title,
-[data-md-color-scheme="default"] .md-header__button {
+html[data-docserver-style="j"] [data-md-color-scheme="default"] :is(.md-header__title, .md-header__button) {
   color: #1f2328;
 }
 
-[data-md-color-scheme="slate"] .md-header {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-header {
   background-color: #161b22;
   color: #e6edf3;
   box-shadow: inset 0 -1px #30363d;
 }
 
-[data-md-color-scheme="slate"] .md-header__title,
-[data-md-color-scheme="slate"] .md-header__button {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] :is(.md-header__title, .md-header__button) {
   color: #e6edf3;
 }
 
-[data-md-color-scheme="default"] .md-sidebar--primary {
+html[data-docserver-style="j"] [data-md-color-scheme="default"] .md-sidebar--primary {
   background-color: #f6f8fa;
 }
 
-[data-md-color-scheme="default"] .md-sidebar__scrollwrap {
+html[data-docserver-style="j"] [data-md-color-scheme="default"] .md-sidebar__scrollwrap {
   border-right: 1px solid #d0d7de;
 }
 
-[data-md-color-scheme="slate"] .md-sidebar--primary {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-sidebar--primary {
   background-color: #0d1117;
 }
 
-[data-md-color-scheme="slate"] .md-sidebar__scrollwrap {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-sidebar__scrollwrap {
   border-right: 1px solid #30363d;
 }
 
-[data-md-color-scheme="default"] .md-nav__link {
+html[data-docserver-style="j"] [data-md-color-scheme="default"] .md-nav__link {
   color: #1f2328;
 }
 
-[data-md-color-scheme="default"] .md-nav__link:hover {
+html[data-docserver-style="j"] [data-md-color-scheme="default"] .md-nav__link:hover {
   color: #0969da;
 }
 
-[data-md-color-scheme="default"] .md-nav__link--active {
+html[data-docserver-style="j"] [data-md-color-scheme="default"] .md-nav__link--active {
   color: #1f2328;
   font-weight: 600;
   background-color: #eaeef2;
   border-radius: 6px;
 }
 
-[data-md-color-scheme="slate"] .md-nav__link {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-nav__link {
   color: #e6edf3;
 }
 
-[data-md-color-scheme="slate"] .md-nav__link:hover {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-nav__link:hover {
   color: #4493f8;
 }
 
-[data-md-color-scheme="slate"] .md-nav__link--active {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-nav__link--active {
   color: #ffffff;
   font-weight: 600;
   background-color: #21262d;
   border-radius: 6px;
 }
 
-.md-typeset a {
+html[data-docserver-style="j"] .md-typeset a {
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
 
-.md-typeset a:hover {
+html[data-docserver-style="j"] .md-typeset a:hover {
   text-decoration-thickness: 2px;
 }
 
-.md-typeset h1 {
+html[data-docserver-style="j"] .md-typeset h1 {
   font-weight: 600;
   border-bottom: 1px solid #d0d7de;
   padding-bottom: 0.3em;
 }
 
-[data-md-color-scheme="slate"] .md-typeset h1 {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-typeset h1 {
   border-bottom-color: #30363d;
 }
 
-.md-typeset pre > code {
+html[data-docserver-style="j"] .md-typeset pre > code {
   border: 1px solid #d0d7de;
   border-radius: 6px;
 }
 
-[data-md-color-scheme="slate"] .md-typeset pre > code {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-typeset pre > code {
   border-color: #30363d;
 }
 
-.md-typeset table:not([class]) {
+html[data-docserver-style="j"] .md-typeset table:not([class]) {
   border: 1px solid #d0d7de;
   border-radius: 6px;
 }
 
-.md-typeset table:not([class]) th {
+html[data-docserver-style="j"] .md-typeset table:not([class]) th {
   background-color: #f6f8fa;
 }
 
-[data-md-color-scheme="slate"] .md-typeset table:not([class]) {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-typeset table:not([class]) {
   border-color: #30363d;
 }
 
-[data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
   background-color: #161b22;
 }
 
-[data-md-color-scheme="default"] .md-typeset .admonition {
+html[data-docserver-style="j"] [data-md-color-scheme="default"] .md-typeset .admonition {
   border: 1px solid #d0d7de;
   border-left-width: 4px;
   border-radius: 6px;
   box-shadow: none;
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-typeset .admonition {
   border-color: #30363d;
   box-shadow: none;
 }
 
-[data-md-color-scheme="default"] .md-search__form {
+html[data-docserver-style="j"] [data-md-color-scheme="default"] .md-search__form {
   background-color: #ffffff;
   border: 1px solid #d0d7de;
   border-radius: 6px;
 }
 
-[data-md-color-scheme="slate"] .md-search__form {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-search__form {
   background-color: #0d1117;
   border: 1px solid #30363d;
   border-radius: 6px;
 }
 
-.md-top {
+html[data-docserver-style="j"] .md-top {
   background-color: #f6f8fa;
   color: #1f2328;
   border: 1px solid #d0d7de;
 }
 
-[data-md-color-scheme="slate"] .md-top {
+html[data-docserver-style="j"] [data-md-color-scheme="slate"] .md-top {
   background-color: #161b22;
   color: #e6edf3;
   border-color: #30363d;
-}
-
-/* 右侧 TOC：不显示顶部「目录 / 本页内容」标题行 */
-.md-sidebar--secondary .md-nav__title,
-.md-nav--secondary > .md-nav__title {
-  display: none;
-}
-
-/* 左侧导航：换页用 instant 加载，链接与激活态过渡 */
-.md-nav__link {
-  transition: color 0.15s ease, background-color 0.15s ease;
-}
-
-.md-content__inner {
-  animation: docserver-page-in 0.22s ease-out;
-}
-
-@keyframes docserver-page-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 右侧目录 / 文内锚点：平滑滚动，避免瞬间跳转 */
-html {
-  scroll-behavior: smooth;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
-  .md-content__inner {
-    animation: none;
-  }
-
-  .md-nav__link {
-    transition: none;
-  }
-}
-
-.md-typeset :is(h1, h2, h3, h4, h5, h6) {
-  scroll-margin-top: calc(var(--md-header-height, 3.6rem) + 0.6rem);
-}
-
-/* 关闭 toc permalink 后仍隐藏可能残留的标题锚链接符号 */
-.md-typeset .headerlink {
-  display: none;
 }

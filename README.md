@@ -11,11 +11,11 @@
 | 导航 | 目录结构即站点结构；各层 `.pages` 控制侧栏顺序与分组标题（取自入口页一级标题） |
 | 输出 | `-O` 指向的目录即为静态站点根（含 `index.html`），可直接交给 Nginx / 对象存储 |
 | 子路径 | `--base-url /xxx` 用于部署在 `https://域名/xxx/` 下；可用 `--site-url` 指定完整 canonical URL |
-| 监视 | `watch` 子命令：源目录任意文件变更即重新构建（不负责 HTTP 预览） |
+| 监视 | `watch` 子命令：源目录任意文件变更即重新构建 |
 
 ## 命令行
 
-入口：`python src build` / `python src watch`（或打包后的 `docserver-sync`）。
+入口：`python src build` / `watch`（或打包后的 `docserver-sync`）。**不提供**内置 HTTP 服务；预览与上线均由 Nginx、`http.server` 等托管 `-O` 目录。页面更新后由用户自行刷新浏览器。
 
 | 长参数 | 短参数 | 说明 |
 | --- | --- | --- |
@@ -42,9 +42,15 @@ python src build -S example/source -O dist --base-url /docs
 python src watch -S example/source -O dist --interval 2
 ```
 
-本地预览：对 `-O` 目录自行启动静态服务，例如 `python -m http.server 8000 --bind 127.0.0.1 --directory dist`（`--bind` 避免终端只显示不可点的 `http://[::]:8000/`）。
+本地查看：先 `build` 或 `watch` 生成 `dist`，再启动静态服务，例如：
 
-Windows：`example.bat` 在后台 `watch` 构建，并用 `http.server` 打开 http://127.0.0.1:8000/（先 `update.bat` 安装依赖）。
+```bash
+python -m http.server 8000 --bind 127.0.0.1 --directory dist
+```
+
+修改源文件后等待 `watch` 重建完成，在浏览器中手动刷新页面。
+
+Windows：`example.bat` = 后台 `watch` + 前台 `http.server`（先 `update.bat` 安装依赖）。
 
 ## 部署
 
@@ -54,17 +60,17 @@ Windows：`example.bat` 在后台 `watch` 构建，并用 `http.server` 打开 h
 
 | 环境 | 脚本 | 作用 |
 | --- | --- | --- |
-| **在线机**（Ubuntu 等，可访问 PyPI） | `build.sh` / `build.bat` | 安装依赖、下载 `offline-packages/`、示例构建（拉取字体与 CDN）、打包 `release/bin/docserver-sync` |
+| **在线机**（Ubuntu 等，可访问 PyPI） | `build.sh` / `build.bat` | 安装依赖、下载 `offline-packages/`、示例构建、打包 `release/bin/docserver-sync` |
 | **离线机** | `run.sh` / `run.bat` | 一键把 Markdown 源目录构建为静态站（默认 `docs` → `output/site`，在脚本顶部修改） |
 
 在线机执行一次后，将整个仓库（至少含 `release/`、`theme/`、`src/`、`offline-packages/`）拷到离线机，编辑 `run` 中的 `SOURCE` / `OUT` 后运行即可。离线 Web 服务只需托管 `OUT` 目录，无需 Python。
 
 ### 开发机本地
 
-- `update.bat` / `pip install -e ".[dev]"`：开发依赖  
-- `example.bat`：示例监视 + 浏览器预览（非生产部署）  
+- `update.bat` / `pip install -e ".[dev]"`：开发依赖（pytest）  
+- `example.bat`：`watch` + `http.server` 预览  
 - `python src build` / `watch`：见上文命令行表  
 
 ## 打包细节
 
-`build.sh` / `build.bat` 内部调用 `tools/pack.sh`（PyInstaller；Linux 可选 staticx）。说明见 [PACKAGING.md](PACKAGING.md)。
+`build.sh` / `build.bat` 内部调用 `tools/pack.sh`（PyInstaller；Linux 可选 staticx）。说明见 [PACKAGING.md](PACKAGING.md).

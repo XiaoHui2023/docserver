@@ -21,6 +21,17 @@ def site_url_from_base(base_url: str, host: str = "https://docs.local") -> str:
     return f"{host.rstrip('/')}{base}/"
 
 
+def _palette_css_yaml_lines(work_root: Path) -> str:
+    pal_dir = work_root / "docs" / "stylesheets" / "palettes"
+    if not pal_dir.is_dir():
+        return ""
+    lines = [
+        f"  - stylesheets/palettes/{path.name}"
+        for path in sorted(pal_dir.glob("*.css"))
+    ]
+    return "\n".join(lines) + ("\n" if lines else "")
+
+
 def write_mkdocs_yml(
     work_root: Path,
     *,
@@ -31,6 +42,7 @@ def write_mkdocs_yml(
     work_root = work_root.resolve()
     config_path = work_root / MKDOCS_FILE
     resolved_site_url = site_url or site_url_from_base(base_url)
+    palette_css = _palette_css_yaml_lines(work_root)
 
     text = f"""site_name: {site_name!r}
 site_url: {resolved_site_url!r}
@@ -39,9 +51,7 @@ use_directory_urls: true
 theme:
   name: material
   language: zh
-  font:
-    text: Noto Sans SC
-    code: JetBrains Mono
+  font: false
   features:
     - navigation.instant
     - navigation.instant.progress
@@ -71,7 +81,9 @@ theme:
         icon: material/brightness-4
         name: 切换到浅色模式
 extra_css:
-  - stylesheets/github.css
+  - stylesheets/docserver-base.css
+{palette_css}extra_javascript:
+  - javascripts/theme-switcher.js
 plugins:
   - privacy
   - search:

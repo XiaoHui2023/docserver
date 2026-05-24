@@ -65,7 +65,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "--interval",
         type=float,
         default=2.0,
-        help="轮询间隔（秒）",
+        help="监视源目录的间隔（秒），非浏览器刷新",
+    )
+    watch_p.add_argument(
+        "--skip-initial",
+        action="store_true",
+        help="跳过启动时首次构建（example.bat 已 build 时使用）",
     )
     watch_p.set_defaults(func=_cmd_watch)
 
@@ -104,6 +109,7 @@ def _cmd_watch(args: argparse.Namespace) -> int:
             interval=args.interval,
             clean=args.clean,
             verbose=args.verbose,
+            skip_initial=args.skip_initial,
         )
     except KeyboardInterrupt:
         print("\n已停止。")

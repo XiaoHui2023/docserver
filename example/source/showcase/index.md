@@ -13,4 +13,4 @@
 
 ## 主题与配色
 
-当前为 **方案 J（GitHub 灰栏）**：`primary: grey` / `black`，`accent: blue` / `light blue`，侧栏 `#f6f8fa`、链接 `#0969da`（浅色）/ `#4493f8`（深色）。其它方案见 **`THEME-PALETTES.md`**。
+**配色风格**：宽屏在顶栏（搜索框左侧）下拉；窄屏在左侧导航最上方。默认 **GitHub 灰栏**，另含 A–L 共 12 套（见 **`THEME-PALETTES.md`**），偏好存浏览器 `localStorage`。太阳图标仍切换浅色 / 深色。
