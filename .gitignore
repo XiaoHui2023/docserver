@@ -1,13 +1,59 @@
-node_modules/
-.vitepress/cache
-.vitepress/dist
-.cursor/
+# =============================================================================
+# docserver — 构建产物、本地环境、工具缓存（源文档目录 example/source 等照常提交）
+# =============================================================================
+
+# --- Cursor / 编辑器 ---
+# 忽略 IDE 本地状态；项目 skill 保留（见 project-skill-manifest-policy）
+.cursor/*
+!.cursor/skills/
+!.cursor/skills/**
+.vscode/
+.idea/
+*.swp
+*~
+
+# --- 操作系统 ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Python ---
 .venv/
 __pycache__/
 *.py[cod]
+*$py.class
 .pytest_cache/
-build/
-dist/
+.mypy_cache/
+.ruff_cache/
 *.egg-info/
-.docserver-manifest.json
-.vitepress/sidebar.generated.json
+.eggs/
+
+# --- Node（已弃用 VitePress 残留，若目录仍在）---
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- MkDocs Material / docserver 构建 ---
+# 静态站点输出（example.bat 默认 -O dist）
+dist/
+dist-*/
+# 工作区：{输出目录}.work/，含 docs 镜像与 mkdocs.yml
+*.work/
+**/.docserver-manifest.json
+# privacy 等插件下载缓存
+.cache/
+.docserver-preview/
+
+# --- PyInstaller / 在线打包 ---
+build/
+release/
+offline-packages/
+
+# --- run.sh / run.bat 默认产物 ---
+output/
+
+# --- 本地密钥（勿提交）---
+.env
+.env.*
+!.env.example

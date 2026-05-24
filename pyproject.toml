@@ -4,10 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "docserver"
-version = "0.0.0"
-description = "将 Markdown 文档目录同步到 VitePress 站点根目录"
+version = "0.1.0"
+description = "将多层 Markdown 文档目录构建为可部署的静态站点"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+  "mkdocs-material>=9.5.0",
+  "mkdocs-awesome-pages-plugin>=2.9.0",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]

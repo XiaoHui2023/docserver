@@ -1,45 +1,70 @@
 # docserver
 
-通用 VitePress 文档站：站点壳与主题为静态资源；正文 Markdown 由外部目录经同步工具写入本站，可一次同步或监视源目录持续更新。站点内置本地全文搜索（构建后生效）。
+将多层 Markdown 文档目录（含静态资源）构建为可部署的静态站点：左栏导航、右侧目录锚点、全文搜索、明/暗主题切换。基于 MkDocs Material，构建链仅需 Python。
 
-## 命令行参数
+## 设计概要
 
-入口：`python src`（或打包后的 `docserver-sync`）。
+| 环节 | 说明 |
+| --- | --- |
+| 输入 | 单一源目录：递归包含 `.md` 与图片等任意静态文件 |
+| 入口页 | 每层目录可用 `readme` / `README` / `index` 等（不区分大小写）作为该层首页，构建时统一为 `index.md` |
+| 导航 | 目录结构即站点结构；各层 `.pages` 控制侧栏顺序与分组标题（取自入口页一级标题） |
+| 输出 | `-O` 指向的目录即为静态站点根（含 `index.html`），可直接交给 Nginx / 对象存储 |
+| 子路径 | `--base-url /xxx` 用于部署在 `https://域名/xxx/` 下；可用 `--site-url` 指定完整 canonical URL |
+| 监视 | `watch` 子命令：源目录任意文件变更即重新构建（不负责 HTTP 预览） |
 
-| 长参数 | 短参数 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- | --- |
-| `--source` | `-S` | 路径 | 必填 | 源文档根目录 |
-| `--out` | `-O` | 路径 | 必填 | VitePress 项目根（含 `.vitepress`、`package.json`） |
-| `--verbose` | `-v` | 开关 | 关 | 打印每个同步文件 |
-| `--clean` | | 开关 | 关 | 删除上次同步、本次已不存在的 Markdown |
-| `--interval` | | 数字（秒） | `2` | 仅 `serve`：轮询间隔 |
+## 命令行
+
+入口：`python src build` / `python src watch`（或打包后的 `docserver-sync`）。
+
+| 长参数 | 短参数 | 说明 |
+| --- | --- | --- |
+| `--source` | `-S` | 源文档根目录（必填） |
+| `--out` | `-O` | 构建产物目录（必填） |
+| `--base-url` | | 子路径前缀，默认 `/` |
+| `--site-url` | | 覆盖由 base-url 推导的 `site_url` |
+| `--site-name` | | 站点标题，默认「文档」 |
+| `--clean` | | 删除工作区中已不存在的同步文件 |
+| `--verbose` | `-v` | 打印详细过程 |
 
 子命令：
 
 | 子命令 | 说明 |
 | --- | --- |
-| `sync` | 同步一次 |
-| `serve` | 监视源目录并持续同步 |
+| `build` | 构建一次 |
+| `watch` | 监视源目录并持续构建 |
 
 示例（仓库根）：
 
 ```bash
-python src sync -S example/source -O .
-python src serve -S example/source -O . --interval 2
+python src build -S example/source -O dist
+python src build -S example/source -O dist --base-url /docs
+python src watch -S example/source -O dist --interval 2
 ```
 
-Windows 可先执行 `update.bat` 创建 `.venv`，`example.bat` 同步示例文档。
+本地预览：对 `-O` 目录自行启动静态服务，例如 `python -m http.server 8000 --bind 127.0.0.1 --directory dist`（`--bind` 避免终端只显示不可点的 `http://[::]:8000/`）。
 
-## 构建与部署静态站
+Windows：`example.bat` 在后台 `watch` 构建，并用 `http.server` 打开 http://127.0.0.1:8000/（先 `update.bat` 安装依赖）。
 
-```bash
-npm install
-python src sync -S <你的文档目录> -O .
-npm run docs:build
-```
+## 部署
 
-构建产物在 `.vitepress/dist`，将整个目录部署到任意静态 Web 服务器（Nginx、对象存储静态托管等）。开发预览：`npm run docs:dev`；构建后本地预览：`npm run docs:preview`。
+将 `-O` 目录整体部署为静态站点。若使用 `--base-url /docs`，Web 服务器需把该路径映射到该目录，且构建时的 `site_url` 须与对外访问前缀一致（可用 `--site-url https://你的域名/docs/`）。
 
-## 打包同步工具
+### 在线构建 + 离线运行（推荐内网）
 
-仓库根执行 `./tools/pack.sh`（Linux 需 `patchelf`），得到 `dist/docserver-sync`（Windows 为 `.exe`）。说明见 [PACKAGING.md](PACKAGING.md)。
+| 环境 | 脚本 | 作用 |
+| --- | --- | --- |
+| **在线机**（Ubuntu 等，可访问 PyPI） | `build.sh` / `build.bat` | 安装依赖、下载 `offline-packages/`、示例构建（拉取字体与 CDN）、打包 `release/bin/docserver-sync` |
+| **离线机** | `run.sh` / `run.bat` | 一键把 Markdown 源目录构建为静态站（默认 `docs` → `output/site`，在脚本顶部修改） |
+
+在线机执行一次后，将整个仓库（至少含 `release/`、`theme/`、`src/`、`offline-packages/`）拷到离线机，编辑 `run` 中的 `SOURCE` / `OUT` 后运行即可。离线 Web 服务只需托管 `OUT` 目录，无需 Python。
+
+### 开发机本地
+
+- `update.bat` / `pip install -e ".[dev]"`：开发依赖  
+- `example.bat`：示例监视 + 浏览器预览（非生产部署）  
+- `python src build` / `watch`：见上文命令行表  
+
+## 打包细节
+
+`build.sh` / `build.bat` 内部调用 `tools/pack.sh`（PyInstaller；Linux 可选 staticx）。说明见 [PACKAGING.md](PACKAGING.md)。

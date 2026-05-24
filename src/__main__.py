@@ -4,14 +4,14 @@ import argparse
 import sys
 from pathlib import Path
 
-from sync import sync_docs
-from watch import serve_watch
+from build_site import build_docs
+from watch import watch_and_build
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="docserver-sync",
-        description="将 Markdown 文档目录同步到 VitePress 站点根目录，并可监视源目录持续更新。",
+        prog="docserver",
+        description="将 Markdown 文档目录构建为可部署的静态站点（MkDocs Material）。",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     sub = parser.add_subparsers(dest="command", required=True)
@@ -22,61 +22,97 @@ def _build_parser() -> argparse.ArgumentParser:
         "--source",
         type=Path,
         required=True,
-        help="源文档根目录（可含多层子目录）",
+        help="源文档根目录（含 Markdown 与静态资源）",
     )
     common.add_argument(
         "-O",
         "--out",
         type=Path,
         required=True,
-        help="VitePress 项目根目录（含 .vitepress 与 package.json）",
+        help="构建产物目录（可直接作为静态站点根目录部署）",
     )
-    common.add_argument("-v", "--verbose", action="store_true", help="打印每个同步文件")
+    common.add_argument(
+        "--base-url",
+        default="/",
+        help="站点子路径前缀，如 /docs/（默认 / 表示站点在域名根）",
+    )
+    common.add_argument(
+        "--site-url",
+        default=None,
+        help="完整 site_url（覆盖由 --base-url 推导的默认值）",
+    )
+    common.add_argument(
+        "--site-name",
+        default="文档",
+        help="站点标题",
+    )
+    common.add_argument("-v", "--verbose", action="store_true", help="打印详细过程")
     common.add_argument(
         "--clean",
         action="store_true",
-        help="删除上次同步写入、本次已不存在的 Markdown",
+        help="删除工作区中上次同步、本次已不存在的文件",
     )
 
-    sync_p = sub.add_parser("sync", parents=[common], help="同步一次")
-    sync_p.set_defaults(func=_cmd_sync)
+    build_p = sub.add_parser("build", parents=[common], help="构建一次")
+    build_p.set_defaults(func=_cmd_build)
 
-    serve_p = sub.add_parser("serve", parents=[common], help="监视源目录并持续同步")
-    serve_p.add_argument(
+    watch_p = sub.add_parser(
+        "watch",
+        parents=[common],
+        help="监视源目录变更并重新构建",
+    )
+    watch_p.add_argument(
         "--interval",
         type=float,
         default=2.0,
         help="轮询间隔（秒）",
     )
-    serve_p.set_defaults(func=_cmd_serve)
+    watch_p.set_defaults(func=_cmd_watch)
 
     return parser
 
 
-def _cmd_sync(args: argparse.Namespace) -> int:
+def _cmd_build(args: argparse.Namespace) -> int:
     try:
-        count = sync_docs(args.source, args.out, clean=args.clean, verbose=args.verbose)
+        count = build_docs(
+            args.source,
+            args.out,
+            base_url=args.base_url,
+            site_url=args.site_url,
+            site_name=args.site_name,
+            clean=args.clean,
+            verbose=args.verbose,
+        )
     except (FileNotFoundError, ValueError) as exc:
         print(f"错误: {exc}", file=sys.stderr)
         return 1
-    print(f"已同步 {count} 个页面到 {args.out.resolve()}")
+    except Exception as exc:
+        print(f"构建失败: {exc}", file=sys.stderr)
+        return 1
+    print(f"已构建 {count} 个页面到 {args.out.resolve()}")
     return 0
 
 
-def _cmd_serve(args: argparse.Namespace) -> int:
+def _cmd_watch(args: argparse.Namespace) -> int:
     try:
-        serve_watch(
+        watch_and_build(
             args.source,
             args.out,
+            base_url=args.base_url,
+            site_url=args.site_url,
+            site_name=args.site_name,
             interval=args.interval,
             clean=args.clean,
             verbose=args.verbose,
         )
     except KeyboardInterrupt:
-        print("\n已停止监视。")
+        print("\n已停止。")
         return 0
     except (FileNotFoundError, ValueError) as exc:
         print(f"错误: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        print(f"构建失败: {exc}", file=sys.stderr)
         return 1
     return 0
 

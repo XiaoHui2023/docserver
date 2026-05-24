@@ -3,19 +3,27 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from sync import sync_docs
+from build_site import build_docs
+from theme_assets import engine_watch_paths
 
 
-def _snapshot(root: Path) -> dict[Path, float]:
+def _snapshot(roots: list[Path]) -> dict[Path, float]:
     snap: dict[Path, float] = {}
-    if not root.is_dir():
-        return snap
-    for path in root.rglob("*"):
-        if path.is_file():
+    for root in roots:
+        if root.is_file():
             try:
-                snap[path] = path.stat().st_mtime
+                snap[root.resolve()] = root.stat().st_mtime
             except OSError:
                 continue
+            continue
+        if not root.is_dir():
+            continue
+        for path in root.rglob("*"):
+            if path.is_file():
+                try:
+                    snap[path.resolve()] = path.stat().st_mtime
+                except OSError:
+                    continue
     return snap
 
 
@@ -28,27 +36,42 @@ def _changed(before: dict[Path, float], after: dict[Path, float]) -> bool:
     return False
 
 
-def serve_watch(
+def watch_and_build(
     source: Path,
     out_root: Path,
     *,
+    base_url: str = "/",
+    site_url: str | None = None,
+    site_name: str = "文档",
     interval: float = 2.0,
     clean: bool = False,
     verbose: bool = False,
 ) -> None:
-    """轮询源目录变更并重复同步。"""
+    """监视源目录任意文件变更并重新构建（不提供 HTTP 预览）。"""
+    watch_roots = [source.resolve(), *engine_watch_paths()]
     print(f"监视源目录: {source.resolve()}")
-    print(f"输出站点根: {out_root.resolve()}")
-    print(f"轮询间隔: {interval} 秒（Ctrl+C 结束）")
+    print(f"监视引擎: theme/、mkdocs_config.py 等")
+    print(f"输出目录: {out_root.resolve()}")
+    print(f"子路径: {base_url!r}  轮询: {interval} 秒（Ctrl+C 结束）")
 
-    last = _snapshot(source)
-    sync_docs(source, out_root, clean=clean, verbose=verbose)
+    def _build() -> None:
+        build_docs(
+            source,
+            out_root,
+            base_url=base_url,
+            site_url=site_url,
+            site_name=site_name,
+            clean=clean,
+            verbose=verbose,
+        )
 
+    _build()
+    last = _snapshot(watch_roots)
     while True:
         time.sleep(interval)
-        current = _snapshot(source)
+        current = _snapshot(watch_roots)
         if _changed(last, current):
             if verbose:
-                print("检测到变更，正在同步…")
-            sync_docs(source, out_root, clean=clean, verbose=verbose)
+                print("检测到变更，正在重新构建…")
+            _build()
             last = current
