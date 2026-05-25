@@ -23,7 +23,7 @@ Windows 产物为 `docserver-sync.exe`，无 staticx 步骤。
 
 在 Linux 上，`tools/pack.sh` 对 ELF 产物再运行 **staticx**，需要系统已安装 **patchelf**（例如 `sudo apt install patchelf`）。**macOS** 当前跳过 staticx，仅保留 PyInstaller onefile。
 
-staticx 会**无参数**执行 onefile 以收集动态库；`docserver-sync` 在无 `-S`/`-O` 时打印帮助并以 0 退出，否则会报 `required: -S -O` 导致打包失败。
+staticx 会**无参数**执行 onefile 以收集动态库；`docserver-sync` 在无 `-s`/`-o` 时打印帮助并以 0 退出，否则会报 `required: -s -o` 导致打包失败。
 
 ## Spec 文件
 

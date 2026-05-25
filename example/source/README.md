@@ -25,7 +25,7 @@
 ## 快速命令
 
 ```bash
-python src -S example/source -O dist --watch
+python src -s example/source -o dist --watch
 python -m http.server 8000 --bind 127.0.0.1 --directory dist
 ```
 

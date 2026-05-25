@@ -8,15 +8,15 @@
 ## 一次构建
 
 ```bash
-python src -S example/source -O dist
+python src -s example/source -o dist
 ```
 
-`-O` 目录即为可部署的静态站点根（含 `index.html`）。
+`-o` 目录即为可部署的静态站点根（含 `index.html`）。
 
 ## 监视并自动重建
 
 ```bash
-python src -S example/source -O dist --watch
+python src -s example/source -o dist --watch
 ```
 
 会监视 `example/source` 下**任意文件**变更并自动重新构建（不提供 HTTP 服务）。

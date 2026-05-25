@@ -30,7 +30,7 @@ mkdir -p "$ROOT/offline-packages"
 echo "==> 示例构建（触发 privacy / 插件外链资源下载）-> output/smoke-test/"
 rm -rf "$ROOT/output/smoke-test"
 mkdir -p "$ROOT/output"
-"${PY[@]}" src -S "$ROOT/example/source" -O "$ROOT/output/smoke-test" --site-name "构建检查"
+"${PY[@]}" src -s "$ROOT/example/source" -o "$ROOT/output/smoke-test" --site-name "构建检查"
 
 echo "==> PyInstaller 打包 -> release/bin/"
 rm -rf "$ROOT/build" "$ROOT/dist" "$ROOT/release"

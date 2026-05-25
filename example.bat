@@ -8,7 +8,7 @@ set PY=%~dp0.venv\Scripts\python.exe
 set SITE_NAME=Docserver Example
 
 echo [1/4] Initial build...
-"%PY%" src -S example\source -O dist --site-name "%SITE_NAME%"
+"%PY%" src -s example\source -o dist --site-name "%SITE_NAME%"
 if errorlevel 1 (
   echo Build failed.
   pause
@@ -16,7 +16,7 @@ if errorlevel 1 (
 )
 
 echo [2/4] Watch source in background (incremental rebuild)...
-start "docserver-watch" /b /d "%~dp0" "%PY%" src -S example\source -O dist -v --site-name "%SITE_NAME%" --watch --skip-initial
+start "docserver-watch" /b /d "%~dp0" "%PY%" src -s example\source -o dist -v --site-name "%SITE_NAME%" --watch --skip-initial
 
 echo [3/4] Open http://127.0.0.1:%PORT%/  (refresh browser after edits)
 start "" "http://127.0.0.1:%PORT%/"

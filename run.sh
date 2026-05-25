@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # ---------- 按需修改 ----------
-SOURCE="${DOCSERVER_SOURCE:-docs}"
+SOURCE="${DOCSERVER_SOURCE:-example/source}"
 OUT="${DOCSERVER_OUT:-output/site}"
 BASE_URL="${DOCSERVER_BASE_URL:-/}"
 SITE_NAME="${DOCSERVER_SITE_NAME:-文档}"
@@ -32,7 +32,7 @@ if [[ ! -d "$SOURCE" ]]; then
   exit 1
 fi
 
-ARGS=(-S "$SOURCE" -O "$OUT" --base-url "$BASE_URL" --site-name "$SITE_NAME" --clean)
+ARGS=(-s "$SOURCE" -o "$OUT" --base-url "$BASE_URL" --site-name "$SITE_NAME" --clean)
 if [[ -n "$SITE_URL" ]]; then
   ARGS+=(--site-url "$SITE_URL")
 fi

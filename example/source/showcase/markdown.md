@@ -33,21 +33,21 @@
 === "Linux / macOS"
 
     ```bash
-    python src -S example/source -O dist --watch
+    python src -s example/source -o dist --watch
     ```
 
 === "仅构建"
 
     ```bash
-    python src -S example/source -O dist
+    python src -s example/source -o dist
     ```
 
 ## 表格
 
 | 列 | 类型 | 说明 |
 | --- | --- | --- |
-| `-S` | 路径 | 源文档根 |
-| `-O` | 路径 | 输出静态站根 |
+| `-s` | 路径 | 源文档根 |
+| `-o` | 路径 | 输出静态站根 |
 | `--base-url` | 文本 | 子路径前缀，如 `/docs` |
 
 ## 代码与行内代码

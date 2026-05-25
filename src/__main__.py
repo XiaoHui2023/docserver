@@ -49,14 +49,14 @@ def _build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
-        "-S",
+        "-s",
         "--source",
         type=Path,
         required=True,
         help="源文档根目录（含 Markdown 与静态资源）",
     )
     parser.add_argument(
-        "-O",
+        "-o",
         "--out",
         type=Path,
         required=True,
@@ -106,7 +106,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     parser = _build_parser()
     argv = _normalize_argv(sys.argv)
-    # staticx 打包时会无参数执行 onefile 以收集依赖，不能因缺少 -S/-O 非零退出。
+    # staticx 打包时会无参数执行 onefile 以收集依赖，不能因缺少 -s/-o 非零退出。
     if len(argv) <= 1:
         parser.print_help()
         return 0

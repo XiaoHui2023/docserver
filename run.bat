@@ -1,9 +1,10 @@
 @echo off
+chcp 65001 >nul 2>&1
 setlocal EnableExtensions
 cd /d "%~dp0"
 
 REM ---------- 按需修改（路径相对仓库根）----------
-set "SOURCE=docs"
+set "SOURCE=example\source"
 set "OUT=output\site"
 set "BASE_URL=/"
 set "SITE_NAME=文档"
@@ -19,20 +20,22 @@ if not exist "%SOURCE%" (
 if exist "release\bin\docserver-sync.exe" (
   echo ==^> release\bin\docserver-sync.exe
   if "%SITE_URL%"=="" (
-    "release\bin\docserver-sync.exe" -S "%SOURCE%" -O "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --clean
+    "release\bin\docserver-sync.exe" -s "%SOURCE%" -o "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --clean
   ) else (
-    "release\bin\docserver-sync.exe" -S "%SOURCE%" -O "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --site-url "%SITE_URL%" --clean
+    "release\bin\docserver-sync.exe" -s "%SOURCE%" -o "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --site-url "%SITE_URL%" --clean
   )
+  if errorlevel 1 exit /b 1
   goto :done
 )
 
 if exist ".venv\Scripts\python.exe" (
-  echo ==^> .venv\python src
+  echo ==^> .venv\Scripts\python.exe src
   if "%SITE_URL%"=="" (
-    ".venv\Scripts\python.exe" src -S "%SOURCE%" -O "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --clean
+    ".venv\Scripts\python.exe" src -s "%SOURCE%" -o "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --clean
   ) else (
-    ".venv\Scripts\python.exe" src -S "%SOURCE%" -O "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --site-url "%SITE_URL%" --clean
+    ".venv\Scripts\python.exe" src -s "%SOURCE%" -o "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --site-url "%SITE_URL%" --clean
   )
+  if errorlevel 1 exit /b 1
   goto :done
 )
 
@@ -42,6 +45,6 @@ exit /b 1
 
 :done
 echo.
-echo 已构建到: %~dp0%OUT%
+echo 已构建到: %CD%\%OUT%
 echo 部署: 将该目录作为 Web 静态根目录。
 pause

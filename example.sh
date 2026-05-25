@@ -22,10 +22,10 @@ else
 fi
 
 echo "[1/4] Initial build..."
-"$PY" src -S "$ROOT/example/source" -O "$ROOT/dist" --site-name "$SITE_NAME"
+"$PY" src -s "$ROOT/example/source" -o "$ROOT/dist" --site-name "$SITE_NAME"
 
 echo "[2/4] Watch source in background (incremental rebuild)..."
-"$PY" src -S "$ROOT/example/source" -O "$ROOT/dist" -v \
+"$PY" src -s "$ROOT/example/source" -o "$ROOT/dist" -v \
   --site-name "$SITE_NAME" --watch --skip-initial &
 WATCH_PID=$!
 trap 'kill "$WATCH_PID" 2>/dev/null || true' EXIT
