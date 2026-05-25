@@ -86,8 +86,8 @@ def prepare_work(
 
   entries = sync_to_work(source, work, clean=clean, verbose=verbose)
   page_count = sum(1 for e in entries if e.is_markdown)
-  pages_written = write_pages_files(docs_dir(work), entries)
   install_theme_assets(work)
+  pages_written = write_pages_files(docs_dir(work), entries)
   config_path = write_mkdocs_yml(
     work,
     site_name=site_name,

@@ -1,4 +1,4 @@
-# docserver 离线运行配置（解压离线包后按需修改）
+# docserver 运行配置（run.sh / run.bat 与 docserver-sync 读取）
 source: example/source
 out: output/site
 base_url: /

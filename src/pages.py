@@ -4,8 +4,13 @@ from pathlib import Path
 
 from scan import FileEntry
 
-# MkDocs 静态资源目录，勿写入 .pages 导航
-_IGNORE_NAV_DIR_NAMES = frozenset({"javascripts", "stylesheets", "media"})
+# 静态资源目录（无 index.md），勿写入 .pages 导航
+_IGNORE_NAV_DIR_NAMES = frozenset({
+  "assets",
+  "javascripts",
+  "stylesheets",
+  "media",
+})
 
 
 def _dir_titles(entries: list[FileEntry]) -> dict[Path, str]:

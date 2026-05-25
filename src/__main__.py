@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from build_site import build_docs
+from project_config import find_project_yaml, load_project_yaml
 from watch import watch_and_build
 
 
@@ -53,30 +54,30 @@ def _build_parser() -> argparse.ArgumentParser:
         "-s",
         "--source",
         type=Path,
-        required=True,
-        help="源文档根目录（含 Markdown 与静态资源）",
+        default=None,
+        help="源文档根目录；省略时从 project.yaml 读取",
     )
     parser.add_argument(
         "-o",
         "--out",
         type=Path,
-        required=True,
-        help="构建产物目录（可直接作为静态站点根目录部署）",
+        default=None,
+        help="构建产物目录；省略时从 project.yaml 读取",
     )
     parser.add_argument(
         "--base-url",
-        default="/",
-        help="站点子路径前缀，如 /docs/（默认 / 表示站点在域名根）",
+        default=None,
+        help="站点子路径前缀；省略时从 project.yaml 读取，否则为 /",
     )
     parser.add_argument(
         "--site-url",
         default=None,
-        help="完整 site_url（覆盖由 --base-url 推导的默认值）",
+        help="完整 site_url；省略时从 project.yaml 读取",
     )
     parser.add_argument(
         "--site-name",
-        default="文档",
-        help="站点标题",
+        default=None,
+        help="站点标题；省略时从 project.yaml 读取，否则为「文档」",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="打印详细过程")
     parser.add_argument(
@@ -112,9 +113,38 @@ def main() -> int:
         parser.print_help()
         return 0
     args = parser.parse_args(argv)
+    try:
+        _apply_project_yaml(args, parser)
+    except ValueError as exc:
+        parser.error(str(exc))
     if args.watch:
         return _run_watch(args)
     return _run_build(args)
+
+
+def _apply_project_yaml(
+    args: argparse.Namespace,
+    parser: argparse.ArgumentParser,
+) -> None:
+    yaml_path = find_project_yaml()
+    cfg = load_project_yaml(yaml_path) if yaml_path else None
+
+    source = args.source or (cfg.source if cfg else None)
+    out = args.out or (cfg.out if cfg else None)
+    if source is None or out is None:
+        parser.error("需要 -s/-o，或在当前目录提供 project.yaml（含 source、out）")
+    args.source = source.resolve()
+    args.out = out.resolve()
+
+    if cfg:
+        if args.base_url is None:
+            args.base_url = cfg.base_url
+        if args.site_name is None:
+            args.site_name = cfg.site_name
+        if args.site_url is None:
+            args.site_url = cfg.site_url
+    args.base_url = args.base_url or "/"
+    args.site_name = args.site_name or "文档"
 
 
 def _run_build(args: argparse.Namespace) -> int:

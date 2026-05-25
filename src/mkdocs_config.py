@@ -5,6 +5,21 @@ from pathlib import Path
 from paths import MKDOCS_FILE, docs_dir
 
 
+def _extra_javascript_yaml_lines(work_root: Path) -> str:
+    scripts = ["javascripts/theme-switcher.js"]
+    if (work_root / "docs" / "javascripts" / "mermaid.min.js").is_file():
+        scripts.insert(0, "javascripts/mermaid.min.js")
+    return "\n".join(f"  - {name}" for name in scripts) + "\n"
+
+
+def _privacy_plugin_yaml() -> str:
+    return (
+        "  - privacy:\n"
+        "      cache: true\n"
+        "      cache_dir: cache/plugin/privacy\n"
+    )
+
+
 def normalize_base_url(base_url: str) -> str:
     raw = (base_url or "/").strip()
     if not raw or raw == "/":
@@ -43,6 +58,8 @@ def write_mkdocs_yml(
     config_path = work_root / MKDOCS_FILE
     resolved_site_url = site_url or site_url_from_base(base_url)
     palette_css = _palette_css_yaml_lines(work_root)
+    extra_js = _extra_javascript_yaml_lines(work_root)
+    privacy_plugin = _privacy_plugin_yaml()
 
     text = f"""site_name: {site_name!r}
 site_url: {resolved_site_url!r}
@@ -83,10 +100,8 @@ theme:
 extra_css:
   - stylesheets/docserver-base.css
 {palette_css}extra_javascript:
-  - javascripts/theme-switcher.js
-plugins:
-  - privacy
-  - search:
+{extra_js}plugins:
+{privacy_plugin}  - search:
       lang:
         - zh
         - en

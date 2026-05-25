@@ -30,6 +30,7 @@ dist/
 dist-*/
 *.work/
 /.docserver-manifest.json
+/cache/
 output/
 site/
 .cache/
