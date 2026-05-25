@@ -32,7 +32,6 @@ if [[ ! -d "$SOURCE" ]]; then
   exit 1
 fi
 
-BIN="$ROOT/release/bin/docserver-sync"
 ARGS=(-S "$SOURCE" -O "$OUT" --base-url "$BASE_URL" --site-name "$SITE_NAME" --clean)
 if [[ -n "$SITE_URL" ]]; then
   ARGS+=(--site-url "$SITE_URL")
@@ -43,16 +42,34 @@ run_build() {
   "$@"
 }
 
-if [[ -x "$BIN" ]]; then
+resolve_python() {
+  if [[ -f "$ROOT/.venv/bin/python" ]]; then
+    echo "$ROOT/.venv/bin/python"
+  elif [[ -f "$ROOT/.venv/Scripts/python.exe" ]]; then
+    echo "$ROOT/.venv/Scripts/python.exe"
+  else
+    return 1
+  fi
+}
+
+BIN=""
+if [[ -x "$ROOT/release/bin/docserver-sync" ]]; then
+  BIN="$ROOT/release/bin/docserver-sync"
+elif [[ -f "$ROOT/release/bin/docserver-sync.exe" ]]; then
+  BIN="$ROOT/release/bin/docserver-sync.exe"
+fi
+
+if [[ -n "$BIN" ]]; then
   run_build "$BIN" "${ARGS[@]}"
-elif [[ -f "$ROOT/.venv/bin/python" ]]; then
+elif PY="$(resolve_python)"; then
   echo "提示: 未找到 release/bin/docserver-sync，使用 .venv"
-  run_build "$ROOT/.venv/bin/python" src "${ARGS[@]}"
+  run_build "$PY" src "${ARGS[@]}"
 else
-  echo "错误: 未找到 release/bin/docserver-sync，且无 .venv。" >&2
-  echo "请先在在线机执行 bash build.sh，或将 offline-packages 安装为 .venv：" >&2
+  echo "错误: 未找到 release/bin/docserver-sync（或 .exe），且无 .venv。" >&2
+  echo "请先在在线机执行 bash build.sh / build.bat，或将 offline-packages 安装为 .venv：" >&2
   echo "  python3 -m venv .venv" >&2
   echo "  .venv/bin/pip install --no-index --find-links=offline-packages -e ." >&2
+  echo "（Windows 离线安装用 .venv/Scripts/pip.exe）" >&2
   exit 1
 fi
 
