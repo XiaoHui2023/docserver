@@ -31,7 +31,9 @@ staticx 会**无参数**执行 onefile 以收集动态库；`docserver-sync` 在
 
 PyInstaller 规格放在仓库根目录：
 
-- `docserver-cli.spec` → `docserver-sync`
+- `docserver-cli.spec` → `docserver-sync`（内含 MkDocs Material 主题与插件的 `collect_all` / `copy_metadata`，避免 onefile 中 `theme: material` 不可用）
+
+修改依赖或 `mkdocs.yml` 插件列表后须重新执行 `./tools/pack.sh`。
 
 ## 兼容边界
 

@@ -9,8 +9,49 @@ from pathlib import Path
 
 from PyInstaller.building.api import EXE, PYZ
 from PyInstaller.building.build_main import Analysis
+from PyInstaller.utils.hooks import collect_all, copy_metadata
 
 block_cipher = None
+
+# MkDocs 通过 importlib.metadata 的 entry_points 发现 theme/plugins；
+# onefile 须打包包数据与 *.dist-info，否则 theme: material 不可用。
+_BUNDLE_IMPORTS = (
+    "material",
+    "mkdocs",
+    "mkdocs_awesome_pages_plugin",
+    "pymdownx",
+    "markdown",
+    "jinja2",
+    "babel",
+    "pygments",
+)
+_BUNDLE_METADATA = (
+    "mkdocs-material",
+    "mkdocs",
+    "mkdocs-awesome-pages-plugin",
+    "pymdown-extensions",
+)
+
+
+def _collect_pyinstaller_bundle() -> tuple[list, list, list]:
+    datas: list = []
+    binaries: list = []
+    hiddenimports: list = []
+    for name in _BUNDLE_IMPORTS:
+        pkg_datas, pkg_bins, pkg_hidden = collect_all(name)
+        datas += pkg_datas
+        binaries += pkg_bins
+        hiddenimports += pkg_hidden
+    for dist_name in _BUNDLE_METADATA:
+        datas += copy_metadata(dist_name)
+    hiddenimports += [
+        "mkdocs.commands.build",
+        "mkdocs.config",
+        "material.plugins.privacy.plugin",
+        "material.plugins.search.plugin",
+        "mkdocs_awesome_pages_plugin",
+    ]
+    return datas, binaries, hiddenimports
 
 
 def _repo_root_from_spec() -> Path:
@@ -27,15 +68,17 @@ def _repo_root_from_spec() -> Path:
     return spec.parent
 
 
+_bundle_datas, _bundle_binaries, _bundle_hiddenimports = _collect_pyinstaller_bundle()
+
 repo_root = _repo_root_from_spec()
 entry = repo_root / "src" / "__main__.py"
 
 a = Analysis(
     [str(entry)],
     pathex=[str(repo_root / "src")],
-    binaries=[],
-    datas=[],
-    hiddenimports=[],
+    binaries=_bundle_binaries,
+    datas=_bundle_datas,
+    hiddenimports=_bundle_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
