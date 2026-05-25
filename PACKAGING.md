@@ -2,7 +2,7 @@
 
 在可访问 PyPI 的机器上于仓库根执行一键脚本；Linux 上会在 PyInstaller onefile 之后再做 staticx，得到更易在旧 glibc 环境运行的自解压单文件。
 
-打包产物内含 MkDocs Material 运行依赖，体积较大；若目标环境可联网，更推荐在目标机使用 `pip install -e .` 与 `python src build`。
+打包产物内含 MkDocs Material 运行依赖，体积较大；若目标环境可联网，更推荐在目标机使用 `pip install -e .` 与 `python src`。
 
 ## 一键打包
 

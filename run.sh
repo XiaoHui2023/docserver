@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 将 Markdown 源目录构建为静态站点（优先使用 build.sh 生成的二进制或本地 .venv）。
+# 将 Markdown 源目录构建为静态站点（调用 docserver-sync / python src，不直接执行 mkdocs 命令）。
 # 用法：编辑下方变量后，在仓库根执行 bash run.sh
 set -euo pipefail
 
@@ -33,7 +33,7 @@ if [[ ! -d "$SOURCE" ]]; then
 fi
 
 BIN="$ROOT/release/bin/docserver-sync"
-ARGS=(build -S "$SOURCE" -O "$OUT" --base-url "$BASE_URL" --site-name "$SITE_NAME" --clean)
+ARGS=(-S "$SOURCE" -O "$OUT" --base-url "$BASE_URL" --site-name "$SITE_NAME" --clean)
 if [[ -n "$SITE_URL" ]]; then
   ARGS+=(--site-url "$SITE_URL")
 fi

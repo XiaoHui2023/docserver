@@ -33,13 +33,13 @@
 === "Linux / macOS"
 
     ```bash
-    python src watch -S example/source -O dist
+    python src -S example/source -O dist --watch
     ```
 
 === "仅构建"
 
     ```bash
-    python src build -S example/source -O dist
+    python src -S example/source -O dist
     ```
 
 ## 表格

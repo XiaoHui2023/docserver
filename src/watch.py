@@ -51,7 +51,7 @@ def watch_and_build(
     """监视源目录任意文件变更并重新构建（不提供 HTTP 预览）。"""
     watch_roots = [source.resolve(), *engine_watch_paths()]
     print(f"监视源目录: {source.resolve()}")
-    print(f"监视引擎: theme/、mkdocs_config.py 等")
+    print(f"监视引擎: theme/、构建配置等")
     print(f"输出目录: {out_root.resolve()}")
     print(f"子路径: {base_url!r}  监视间隔: {interval} 秒（Ctrl+C 结束）")
 

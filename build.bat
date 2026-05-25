@@ -27,7 +27,7 @@ echo.
 echo ==^> 示例构建 -^> output\smoke-test\
 if exist "output\smoke-test" rmdir /s /q "output\smoke-test"
 mkdir "output" 2>nul
-"%PY%" src build -S "example\source" -O "output\smoke-test" --site-name "构建检查"
+"%PY%" src -S "example\source" -O "output\smoke-test" --site-name "构建检查"
 
 echo.
 echo ==^> PyInstaller 打包 -^> release\bin\

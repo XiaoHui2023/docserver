@@ -11,11 +11,11 @@
 | 导航 | 目录结构即站点结构；各层 `.pages` 控制侧栏顺序与分组标题（取自入口页一级标题） |
 | 输出 | `-O` 指向的目录即为静态站点根（含 `index.html`），可直接交给 Nginx / 对象存储 |
 | 子路径 | `--base-url /xxx` 用于部署在 `https://域名/xxx/` 下；可用 `--site-url` 指定完整 canonical URL |
-| 监视 | `watch` 子命令：源目录任意文件变更即重新构建 |
+| 监视 | `--watch`：源目录任意文件变更即重新构建 |
 
 ## 命令行
 
-入口：`python src build` / `watch`（或打包后的 `docserver-sync`）。**不提供**内置 HTTP 服务；预览与上线均由 Nginx、`http.server` 等托管 `-O` 目录。页面更新后由用户自行刷新浏览器。
+入口：`python src`（或打包后的 `docserver-sync`）。**不提供**内置 HTTP 服务；预览与上线均由 Nginx、`http.server` 等托管 `-O` 目录。页面更新后由用户自行刷新浏览器。
 
 | 长参数 | 短参数 | 说明 |
 | --- | --- | --- |
@@ -27,30 +27,27 @@
 | `--clean` | | 删除工作区中已不存在的同步文件 |
 | `--verbose` | `-v` | 打印详细过程 |
 
-子命令：
-
-| 子命令 | 说明 |
-| --- | --- |
-| `build` | 构建一次 |
-| `watch` | 监视源目录并持续构建 |
+| `--watch` | | 监视源目录并持续构建 |
+| `--interval` | | 与 `--watch` 合用，轮询间隔（秒），默认 2 |
+| `--skip-initial` | | 与 `--watch` 合用，跳过启动时首次构建 |
 
 示例（仓库根）：
 
 ```bash
-python src build -S example/source -O dist
-python src build -S example/source -O dist --base-url /docs
-python src watch -S example/source -O dist --interval 2
+python src -S example/source -O dist
+python src -S example/source -O dist --base-url /docs
+python src -S example/source -O dist --watch --interval 2
 ```
 
-本地查看：先 `build` 或 `watch` 生成 `dist`，再启动静态服务，例如：
+本地查看：先构建或 `--watch` 生成 `dist`，再启动静态服务，例如：
 
 ```bash
 python -m http.server 8000 --bind 127.0.0.1 --directory dist
 ```
 
-修改源文件后等待 `watch` 重建完成，在浏览器中手动刷新页面。
+修改源文件后等待 `--watch` 重建完成，在浏览器中手动刷新页面。
 
-Windows：`example.bat` = 后台 `watch` + 前台 `http.server`（先 `update.bat` 安装依赖）。
+Windows：`example.bat` = 后台 `--watch` + 前台 `http.server`（先 `update.bat` 安装依赖）。
 
 ## 部署
 
@@ -68,8 +65,8 @@ Windows：`example.bat` = 后台 `watch` + 前台 `http.server`（先 `update.ba
 ### 开发机本地
 
 - `update.bat` / `pip install -e ".[dev]"`：开发依赖（pytest）  
-- `example.bat`：`watch` + `http.server` 预览  
-- `python src build` / `watch`：见上文命令行表  
+- `example.bat`：`--watch` + `http.server` 预览  
+- `python src`：见上文命令行表  
 
 ## 打包细节
 

@@ -8,76 +8,110 @@ from build_site import build_docs
 from watch import watch_and_build
 
 
+def _is_script_token(token: str) -> bool:
+    return (
+        token == "src"
+        or token.endswith(("/src", "\\src"))
+        or token.endswith("__main__.py")
+    )
+
+
+def _normalize_argv(argv: list[str]) -> list[str]:
+    """去掉 ``python src`` 脚本名与旧 ``build`` / ``watch`` 子命令。"""
+    if not argv:
+        return argv
+    head, *rest = argv
+    cleaned: list[str] = []
+    want_watch = False
+    for token in rest:
+        if token in ("build", "watch"):
+            if token == "watch":
+                want_watch = True
+            continue
+        if _is_script_token(token):
+            continue
+        cleaned.append(token)
+    if head in ("build", "watch"):
+        if head == "watch":
+            want_watch = True
+        head = sys.executable or "docserver"
+    elif head == "src" or _is_script_token(head):
+        head = sys.executable or "docserver"
+    if want_watch and "--watch" not in cleaned:
+        cleaned.insert(0, "--watch")
+    return cleaned
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="docserver",
         description="将 Markdown 文档目录构建为可部署的静态站点（MkDocs Material）。",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    sub = parser.add_subparsers(dest="command", required=True)
-
-    common = argparse.ArgumentParser(add_help=False)
-    common.add_argument(
+    parser.add_argument(
         "-S",
         "--source",
         type=Path,
         required=True,
         help="源文档根目录（含 Markdown 与静态资源）",
     )
-    common.add_argument(
+    parser.add_argument(
         "-O",
         "--out",
         type=Path,
         required=True,
         help="构建产物目录（可直接作为静态站点根目录部署）",
     )
-    common.add_argument(
+    parser.add_argument(
         "--base-url",
         default="/",
         help="站点子路径前缀，如 /docs/（默认 / 表示站点在域名根）",
     )
-    common.add_argument(
+    parser.add_argument(
         "--site-url",
         default=None,
         help="完整 site_url（覆盖由 --base-url 推导的默认值）",
     )
-    common.add_argument(
+    parser.add_argument(
         "--site-name",
         default="文档",
         help="站点标题",
     )
-    common.add_argument("-v", "--verbose", action="store_true", help="打印详细过程")
-    common.add_argument(
+    parser.add_argument("-v", "--verbose", action="store_true", help="打印详细过程")
+    parser.add_argument(
         "--clean",
         action="store_true",
         help="删除工作区中上次同步、本次已不存在的文件",
     )
-
-    build_p = sub.add_parser("build", parents=[common], help="构建一次")
-    build_p.set_defaults(func=_cmd_build)
-
-    watch_p = sub.add_parser(
-        "watch",
-        parents=[common],
-        help="监视源目录变更并重新构建",
+    parser.add_argument(
+        "--watch",
+        action="store_true",
+        help="监视源目录与主题配置变更并持续重新构建",
     )
-    watch_p.add_argument(
+    parser.add_argument(
         "--interval",
         type=float,
         default=2.0,
-        help="监视源目录的间隔（秒），非浏览器刷新",
+        metavar="SEC",
+        help="与 --watch 合用：轮询间隔（秒），默认 2",
     )
-    watch_p.add_argument(
+    parser.add_argument(
         "--skip-initial",
         action="store_true",
-        help="跳过启动时首次构建（example.bat 已 build 时使用）",
+        help="与 --watch 合用：跳过启动时首次构建",
     )
-    watch_p.set_defaults(func=_cmd_watch)
-
     return parser
 
 
-def _cmd_build(args: argparse.Namespace) -> int:
+def main() -> int:
+    parser = _build_parser()
+    args = parser.parse_args(_normalize_argv(sys.argv))
+    if args.watch:
+        return _run_watch(args)
+    return _run_build(args)
+
+
+def _run_build(args: argparse.Namespace) -> int:
     try:
         count = build_docs(
             args.source,
@@ -98,7 +132,7 @@ def _cmd_build(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_watch(args: argparse.Namespace) -> int:
+def _run_watch(args: argparse.Namespace) -> int:
     try:
         watch_and_build(
             args.source,
@@ -121,12 +155,6 @@ def _cmd_watch(args: argparse.Namespace) -> int:
         print(f"构建失败: {exc}", file=sys.stderr)
         return 1
     return 0
-
-
-def main() -> int:
-    parser = _build_parser()
-    args = parser.parse_args()
-    return int(args.func(args))
 
 
 if __name__ == "__main__":

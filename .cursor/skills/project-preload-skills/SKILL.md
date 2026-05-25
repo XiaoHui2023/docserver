@@ -20,4 +20,4 @@ description: 本仓库：会话预加载顺序与用过的 skill 记录。
 
 ## 用过的 skill（追加记录）
 
-（初始为空。）
+- `~/.cursor/skills/python-pyinstaller-staticx-packaging/SKILL.md` — 打包脚本 Git `+x`、`.gitattributes`、`PACKAGING.md` 与全局 skill 同步

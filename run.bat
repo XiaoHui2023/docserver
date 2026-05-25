@@ -19,9 +19,9 @@ if not exist "%SOURCE%" (
 if exist "release\bin\docserver-sync.exe" (
   echo ==^> release\bin\docserver-sync.exe
   if "%SITE_URL%"=="" (
-    "release\bin\docserver-sync.exe" build -S "%SOURCE%" -O "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --clean
+    "release\bin\docserver-sync.exe" -S "%SOURCE%" -O "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --clean
   ) else (
-    "release\bin\docserver-sync.exe" build -S "%SOURCE%" -O "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --site-url "%SITE_URL%" --clean
+    "release\bin\docserver-sync.exe" -S "%SOURCE%" -O "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --site-url "%SITE_URL%" --clean
   )
   goto :done
 )
@@ -29,9 +29,9 @@ if exist "release\bin\docserver-sync.exe" (
 if exist ".venv\Scripts\python.exe" (
   echo ==^> .venv\python src
   if "%SITE_URL%"=="" (
-    ".venv\Scripts\python.exe" src build -S "%SOURCE%" -O "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --clean
+    ".venv\Scripts\python.exe" src -S "%SOURCE%" -O "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --clean
   ) else (
-    ".venv\Scripts\python.exe" src build -S "%SOURCE%" -O "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --site-url "%SITE_URL%" --clean
+    ".venv\Scripts\python.exe" src -S "%SOURCE%" -O "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" --site-url "%SITE_URL%" --clean
   )
   goto :done
 )
