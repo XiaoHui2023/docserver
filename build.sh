@@ -25,7 +25,7 @@ echo "==> Python: $("${PY[@]}" -V)"
 echo "==> 下载离线 pip 包到 offline-packages/（供离线机可选安装 .venv）"
 rm -rf "$ROOT/offline-packages"
 mkdir -p "$ROOT/offline-packages"
-"${PY[@]}" -m pip download -d "$ROOT/offline-packages" -e ".[dev]"
+"${PY[@]}" -m pip download -d "$ROOT/offline-packages" ".[dev]"
 
 echo "==> 示例构建（触发 privacy / 插件外链资源下载）-> output/smoke-test/"
 rm -rf "$ROOT/output/smoke-test"

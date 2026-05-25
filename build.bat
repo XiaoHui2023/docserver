@@ -21,7 +21,7 @@ echo.
 echo ==^> 下载离线 pip 包到 offline-packages\
 if exist "offline-packages" rmdir /s /q "offline-packages"
 mkdir "offline-packages"
-"%PY%" -m pip download -d "offline-packages" -e ".[dev]"
+"%PY%" -m pip download -d "offline-packages" ".[dev]"
 
 echo.
 echo ==^> 示例构建 -^> output\smoke-test\
