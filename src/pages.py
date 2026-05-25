@@ -4,13 +4,12 @@ from pathlib import Path
 
 from scan import FileEntry
 
-# 静态资源目录（无 index.md），勿写入 .pages 导航
-_IGNORE_NAV_DIR_NAMES = frozenset({
-  "assets",
-  "javascripts",
-  "stylesheets",
-  "media",
-})
+def _dir_contains_markdown(docs_root: Path, rel_dir: Path) -> bool:
+    """目录树内是否至少有一个 .md（无则勿写入 nav，避免 awesome-pages 报错）。"""
+    target = docs_root / rel_dir
+    if not target.is_dir():
+        return False
+    return any(path.is_file() for path in target.rglob("*.md"))
 
 
 def _dir_titles(entries: list[FileEntry]) -> dict[Path, str]:
@@ -34,21 +33,27 @@ def _list_dir_content(docs_root: Path, dir_path: Path) -> tuple[list[str], list[
         if child.name.startswith(".") or child.name == ".pages":
             continue
         if child.is_dir():
-            if child.name not in _IGNORE_NAV_DIR_NAMES:
+            rel_sub = dir_path / child.name
+            if _dir_contains_markdown(docs_root, rel_sub):
                 subdirs.append(child.name)
         elif child.suffix.lower() == ".md":
             md_files.append(child.name)
     return md_files, subdirs
 
 
+def _yaml_scalar(value: str) -> str:
+    """生成可安全写入 .pages 的 YAML 标量（避免 @、: 等触发解析错误）。"""
+    return repr(value)
+
+
 def _format_pages_yaml(title: str | None, nav: list[str]) -> str:
     lines: list[str] = []
     if title:
-        lines.append(f"title: {title!r}")
+        lines.append(f"title: {_yaml_scalar(title)}")
     if nav:
         lines.append("nav:")
         for item in nav:
-            lines.append(f"  - {item}")
+            lines.append(f"  - {_yaml_scalar(item)}")
     return "\n".join(lines) + "\n"
 
 

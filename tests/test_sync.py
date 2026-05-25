@@ -12,7 +12,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from entries import dest_rel_for_source, is_entry_md  # noqa: E402
-from pages import write_pages_files  # noqa: E402
+from pages import _format_pages_yaml, write_pages_files  # noqa: E402
 from scan import scan_source  # noqa: E402
 from staging import sync_to_work  # noqa: E402
 
@@ -59,18 +59,30 @@ class TestDocserver(unittest.TestCase):
             self.assertTrue((work / "docs" / "index.md").is_file())
             self.assertTrue((work / "docs" / "logo.png").is_file())
 
-    def test_pages_ignores_assets_dir(self) -> None:
+    def test_pages_yaml_quotes_at_in_filename(self) -> None:
+        text = _format_pages_yaml("分组", ["index.md", "a@b.md", "dir@name"])
+        self.assertIn("'a@b.md'", text)
+        self.assertIn("'dir@name'", text)
+        import yaml
+
+        parsed = yaml.safe_load(text)
+        self.assertEqual(parsed["nav"], ["index.md", "a@b.md", "dir@name"])
+
+    def test_pages_ignores_static_only_dirs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "src"
             work = Path(tmp) / "work"
             src.mkdir()
             (src / "index.md").write_text("# Home\n", encoding="utf-8")
-            (src / "assets").mkdir()
-            (src / "assets" / "pic.png").write_bytes(b"\x89PNG")
+            for name in ("assets", "image", "media"):
+                (src / name).mkdir()
+                (src / name / "pic.png").write_bytes(b"\x89PNG")
             entries = sync_to_work(src, work, verbose=False)
             write_pages_files(work / "docs", entries)
             text = (work / "docs" / ".pages").read_text(encoding="utf-8")
             self.assertNotIn("assets", text)
+            self.assertNotIn("image", text)
+            self.assertNotIn("media", text)
 
     def test_sync_writes_pages(self) -> None:
         source = ROOT / "example" / "source"
