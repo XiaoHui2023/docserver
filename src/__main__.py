@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
@@ -130,10 +131,12 @@ def _run_build(args: argparse.Namespace) -> int:
     except (FileNotFoundError, ValueError) as exc:
         print(f"错误: {exc}", file=sys.stderr)
         return 1
+    except subprocess.CalledProcessError as exc:
+        print(f"构建失败: MkDocs 退出码 {exc.returncode}", file=sys.stderr)
+        return 1
     except Exception as exc:
         print(f"构建失败: {exc}", file=sys.stderr)
         return 1
-    print(f"已构建 {count} 个页面到 {args.out.resolve()}")
     return 0
 
 
@@ -155,6 +158,9 @@ def _run_watch(args: argparse.Namespace) -> int:
         return 0
     except (FileNotFoundError, ValueError) as exc:
         print(f"错误: {exc}", file=sys.stderr)
+        return 1
+    except subprocess.CalledProcessError as exc:
+        print(f"构建失败: MkDocs 退出码 {exc.returncode}", file=sys.stderr)
         return 1
     except Exception as exc:
         print(f"构建失败: {exc}", file=sys.stderr)

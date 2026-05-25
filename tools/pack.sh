@@ -60,6 +60,7 @@ dist_name_for_target() {
 apply_staticx_linux() {
   local dist_name="$1"
   local pyi_out="$ROOT/dist/${dist_name}"
+  local pyi_keep="$ROOT/dist/${dist_name}-pyi"
   if [[ ! -f "$pyi_out" ]]; then
     return 0
   fi
@@ -73,13 +74,17 @@ apply_staticx_linux() {
     echo "错误: 未找到可执行的 .venv/bin/staticx。" >&2
     exit 1
   fi
+  echo "==> 保留 PyInstaller onefile（非 staticx）: $pyi_keep"
+  cp -f "$pyi_out" "$pyi_keep"
+  chmod +x "$pyi_keep"
   local tmp_out="$ROOT/dist/.${dist_name}-staticx.tmp"
   rm -f "$tmp_out"
-  echo "==> staticx: $pyi_out -> $dist_name"
-  "$staticx" "$pyi_out" "$tmp_out"
+  echo "==> staticx: $pyi_keep -> $dist_name"
+  "$staticx" "$pyi_keep" "$tmp_out"
   mv -f "$tmp_out" "$pyi_out"
   chmod +x "$pyi_out"
   echo "完成: $pyi_out（staticx 自解压包；请在目标机实测）"
+  echo "      $pyi_keep（仅 PyInstaller；staticx 失败时可单独运行排查）"
 }
 
 build_target() {

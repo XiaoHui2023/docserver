@@ -14,14 +14,16 @@
 
 | 命令 | 产物（`dist/`） |
 | --- | --- |
-| `./tools/pack.sh` 或 `all` | `docserver-sync` |
-| `./tools/pack.sh src` | `docserver-sync` |
+| `./tools/pack.sh` 或 `all` | `docserver-sync`（Linux 为 staticx 后） |
+| `./tools/pack.sh src` | 同上 |
 
 Windows 产物为 `docserver-sync.exe`，无 staticx 步骤。
 
 ## Linux staticx
 
 在 Linux 上，`tools/pack.sh` 对 ELF 产物再运行 **staticx**，需要系统已安装 **patchelf**（例如 `sudo apt install patchelf`）。**macOS** 当前跳过 staticx，仅保留 PyInstaller onefile。
+
+staticx 之前会把 PyInstaller onefile **复制**为 `dist/docserver-sync-pyi` 并保留；最终发布用的 `dist/docserver-sync` 为 staticx 产物。若打包在 staticx 阶段失败，可先对 `-pyi` 文件单独运行、对照 `build/` 与 PyInstaller 日志，区分是 onefile 还是 staticx 的问题。
 
 staticx 会**无参数**执行 onefile 以收集动态库；`docserver-sync` 在无 `-s`/`-o` 时打印帮助并以 0 退出，否则会报 `required: -s -o` 导致打包失败。
 

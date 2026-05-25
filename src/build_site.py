@@ -11,17 +11,13 @@ from staging import sync_to_work
 from theme_assets import install_theme_assets
 
 
-def _run_mkdocs(
+def _mkdocs_build_argv(
   config_path: Path,
   out_root: Path,
   *,
-  verbose: bool,
-  clean_site: bool = True,
-) -> None:
-  cmd = [
-    sys.executable,
-    "-m",
-    "mkdocs",
+  clean_site: bool,
+) -> list[str]:
+  argv = [
     "build",
     "-f",
     str(config_path),
@@ -29,7 +25,42 @@ def _run_mkdocs(
     str(out_root),
   ]
   if clean_site:
-    cmd.append("--clean")
+    argv.append("--clean")
+  return argv
+
+
+def _run_mkdocs_inprocess(argv: list[str], *, verbose: bool) -> None:
+  from mkdocs.__main__ import cli
+
+  if verbose:
+    print("执行: mkdocs", " ".join(argv))
+  saved_argv = sys.argv
+  sys.argv = ["mkdocs", *argv]
+  try:
+    exit_code = cli(standalone_mode=False)
+  except SystemExit as exc:
+    exit_code = exc.code if isinstance(exc.code, int) else 1
+  finally:
+    sys.argv = saved_argv
+  if exit_code:
+    raise subprocess.CalledProcessError(
+      exit_code if isinstance(exit_code, int) else 1,
+      ["mkdocs", *argv],
+    )
+
+
+def _run_mkdocs(
+  config_path: Path,
+  out_root: Path,
+  *,
+  verbose: bool,
+  clean_site: bool = True,
+) -> None:
+  argv = _mkdocs_build_argv(config_path, out_root, clean_site=clean_site)
+  if getattr(sys, "frozen", False):
+    _run_mkdocs_inprocess(argv, verbose=verbose)
+    return
+  cmd = [sys.executable, "-m", "mkdocs", *argv]
   if verbose:
     print("执行:", " ".join(cmd))
   subprocess.run(cmd, check=True)

@@ -3,9 +3,9 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from paths import docs_dir
+from paths import docs_dir, repo_root
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
+_REPO_ROOT = repo_root()
 _REPO_THEME = _REPO_ROOT / "theme"
 
 

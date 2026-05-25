@@ -71,6 +71,16 @@ class TestDocserver(unittest.TestCase):
             self.assertGreaterEqual(count, 1)
             self.assertTrue((pages_root / ".pages").is_file())
 
+    @patch("build_site.subprocess.run")
+    @patch("build_site._run_mkdocs_inprocess")
+    def test_frozen_mkdocs_inprocess(self, mock_inprocess, mock_run) -> None:
+        import build_site
+
+        with patch.object(build_site.sys, "frozen", True, create=True):
+            build_site._run_mkdocs(Path("mkdocs.yml"), Path("out"), verbose=False)
+        mock_inprocess.assert_called_once()
+        mock_run.assert_not_called()
+
     @patch("build_site._run_mkdocs")
     def test_build_invokes_mkdocs(self, mock_mkdocs) -> None:
         from build_site import build_docs
