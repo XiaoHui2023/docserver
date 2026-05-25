@@ -13,10 +13,17 @@ def _extra_javascript_yaml_lines(work_root: Path) -> str:
 
 
 def _privacy_plugin_yaml() -> str:
+    """privacy：仅保留缓存配置；不抓取正文内外链图片/附件，避免内网 URL 构建失败。
+
+    输出为静态 HTML，图片仍用 Markdown 中的原始 URL，由浏览器打开站点时再请求（非构建时下载）。
+    主题 bundle 中的脚本仍可在在线 build 时通过 cache 目录处理；正文 ``![](http://…)`` 不再镜像。
+    """
     return (
         "  - privacy:\n"
         "      cache: true\n"
         "      cache_dir: cache/plugin/privacy\n"
+        "      assets_fetch: false\n"
+        "      log: false\n"
     )
 
 
