@@ -7,7 +7,6 @@
 ## 一键打包
 
 ```bash
-chmod +x tools/pack.sh
 ./tools/pack.sh
 ```
 

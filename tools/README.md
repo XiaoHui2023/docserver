@@ -5,7 +5,6 @@
 在仓库根执行（使用根目录 `.venv`，无则创建）：
 
 ```bash
-chmod +x tools/pack.sh
 ./tools/pack.sh
 ```
 
