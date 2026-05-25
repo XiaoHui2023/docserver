@@ -1,6 +1,6 @@
 # Docserver 示例站
 
-本目录是 **docserver** 的演示源文档。运行仓库根目录的 `example.bat`：后台 `--watch` 构建，`http.server` 提供预览；保存源文件后请在浏览器中手动刷新。
+本目录是 **docserver** 的演示源文档。运行仓库根的 `example.sh`（Unix）或 `example.bat`（Windows）：后台 `--watch` 构建，`http.server` 提供预览；保存源文件后请在浏览器中手动刷新。
 
 ## 站点功能一览
 
@@ -29,4 +29,4 @@ python src -S example/source -O dist --watch
 python -m http.server 8000 --bind 127.0.0.1 --directory dist
 ```
 
-Windows 可直接双击 `example.bat`（后台 `--watch` + 浏览器预览）。
+Unix：`bash example.sh`；Windows 可双击 `example.bat`（后台 `--watch` + 浏览器预览）。

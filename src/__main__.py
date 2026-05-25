@@ -105,7 +105,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     parser = _build_parser()
-    args = parser.parse_args(_normalize_argv(sys.argv))
+    argv = _normalize_argv(sys.argv)
+    # staticx 打包时会无参数执行 onefile 以收集依赖，不能因缺少 -S/-O 非零退出。
+    if len(argv) <= 1:
+        parser.print_help()
+        return 0
+    args = parser.parse_args(argv)
     if args.watch:
         return _run_watch(args)
     return _run_build(args)

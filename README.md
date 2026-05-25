@@ -47,7 +47,7 @@ python -m http.server 8000 --bind 127.0.0.1 --directory dist
 
 修改源文件后等待 `--watch` 重建完成，在浏览器中手动刷新页面。
 
-Windows：`example.bat` = 后台 `--watch` + 前台 `http.server`（先 `update.bat` 安装依赖）。
+Unix：`bash example.sh`；Windows：`example.bat`。均为后台 `--watch` + 前台 `http.server`（无 `.venv` 时会自动创建并安装依赖）。
 
 ## 部署
 
@@ -65,7 +65,7 @@ Windows：`example.bat` = 后台 `--watch` + 前台 `http.server`（先 `update.
 ### 开发机本地
 
 - `update.bat` / `pip install -e ".[dev]"`：开发依赖（pytest）  
-- `example.bat`：`--watch` + `http.server` 预览  
+- `example.sh` / `example.bat`：`--watch` + `http.server` 预览  
 - `python src`：见上文命令行表  
 
 ## 打包细节
