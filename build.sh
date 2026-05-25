@@ -32,27 +32,20 @@ rm -rf "$ROOT/output/smoke-test"
 mkdir -p "$ROOT/output"
 "${PY[@]}" src -s "$ROOT/example/source" -o "$ROOT/output/smoke-test" --site-name "构建检查"
 
-echo "==> PyInstaller 打包 -> release/bin/"
+echo "==> PyInstaller 打包"
 rm -rf "$ROOT/build" "$ROOT/dist" "$ROOT/release"
-mkdir -p "$ROOT/release/bin"
 bash "$ROOT/tools/pack.sh" src
+
+echo "==> 组装离线压缩包 -> release/docserver-offline-*.tar.gz"
+bash "$ROOT/tools/stage-offline.sh"
+mkdir -p "$ROOT/release/bin"
 cp -f "$ROOT/dist/docserver-sync" "$ROOT/release/bin/docserver-sync"
 chmod +x "$ROOT/release/bin/docserver-sync"
 
-cat >"$ROOT/release/README.txt" <<EOF
-docserver 离线运行包（$(date -Iseconds)）
-
-1. 将整个仓库（含 release/bin、theme/、src/、offline-packages/）拷到离线机。
-2. 在离线机编辑 run.sh / run.bat 顶部的 SOURCE、OUT。
-3. 运行 run：生成静态站到 OUT 目录，用 Nginx 等托管 OUT 即可。
-
-可执行文件：release/bin/docserver-sync
-若无网络且未装 .venv，优先使用该二进制执行 build。
-EOF
-
 echo ""
 echo "完成。产物："
-echo "  release/bin/docserver-sync   # 离线机 build 用"
-echo "  offline-packages/            # 离线机 pip install --no-index 用（可选）"
-echo "  output/smoke-test/           # 在线构建自检静态站"
-echo "下一步：将仓库拷到离线机，运行 bash run.sh"
+echo "  release/docserver-offline-*.tar.gz   # 拷到离线机解压即用"
+echo "  release/bin/docserver-sync           # 本机调试副本"
+echo "  offline-packages/                    # 离线机 pip install --no-index 用（可选）"
+echo "  output/smoke-test/                   # 在线构建自检静态站"
+echo "下一步：将 tar.gz 拷到离线机解压，编辑 project.yaml 后运行 bash run.sh"

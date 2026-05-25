@@ -1,6 +1,6 @@
 # 打包发布
 
-在可访问 PyPI 的机器上于仓库根执行一键脚本；Linux 上会在 PyInstaller onefile 之后再做 staticx，得到更易在旧 glibc 环境运行的自解压单文件。
+在可访问 PyPI 的机器上于仓库根执行 `build.sh` / `build.bat`；除 PyInstaller 可执行文件外，会组装 **`release/docserver-offline-*.tar.gz`**（Windows 为 `.zip`），内含 `release/bin/docserver-sync`、`project.yaml`、`run.sh`、`run.bat`、`theme/`。Linux 上 PyInstaller onefile 之后可选 staticx。
 
 打包产物内含 MkDocs Material 运行依赖，体积较大；若目标环境可联网，更推荐在目标机使用 `pip install -e .` 与 `python src`。
 

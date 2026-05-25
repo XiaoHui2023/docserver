@@ -3,13 +3,23 @@ chcp 65001 >nul 2>&1
 setlocal EnableExtensions
 cd /d "%~dp0"
 
-REM ---------- 按需修改（路径相对仓库根）----------
+REM ---------- 默认值（可被 project.yaml 覆盖）----------
 set "SOURCE=example\source"
 set "OUT=output\site"
 set "BASE_URL=/"
 set "SITE_NAME=文档"
 set "SITE_URL="
 REM -----------------------------------------------
+
+if exist "project.yaml" (
+  for /f "usebackq eol=# tokens=1,* delims=: " %%a in ("project.yaml") do (
+    if /i "%%a"=="source" set "SOURCE=%%b"
+    if /i "%%a"=="out" set "OUT=%%b"
+    if /i "%%a"=="base_url" set "BASE_URL=%%b"
+    if /i "%%a"=="site_name" set "SITE_NAME=%%b"
+    if /i "%%a"=="site_url" set "SITE_URL=%%b"
+  )
+)
 
 if not exist "%SOURCE%" (
   echo 错误: 源目录不存在: %SOURCE%

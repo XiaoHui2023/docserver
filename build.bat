@@ -31,29 +31,42 @@ mkdir "output" 2>nul
 "%PY%" src -s "example\source" -o "output\smoke-test" --site-name "构建检查"
 
 echo.
-echo ==^> PyInstaller 打包 -^> release\bin\
+echo ==^> PyInstaller 打包
 if exist "build" rmdir /s /q "build"
 if exist "dist" rmdir /s /q "dist"
 if exist "release" rmdir /s /q "release"
-mkdir "release\bin"
 
 "%PY%" -m PyInstaller --clean --noconfirm "%~dp0docserver-cli.spec"
-copy /y "dist\docserver-sync.exe" "release\bin\docserver-sync.exe" >nul
 
-> "release\README.txt" (
+echo.
+echo ==^> 组装离线压缩包 -^> release\docserver-offline-win-amd64.zip
+if exist "release\staging" rmdir /s /q "release\staging"
+mkdir "release\staging\release\bin"
+copy /y "dist\docserver-sync.exe" "release\staging\release\bin\docserver-sync.exe" >nul
+copy /y "project.yaml" "release\staging\" >nul
+copy /y "run.sh" "release\staging\" >nul
+copy /y "run.bat" "release\staging\" >nul
+xcopy /e /i /q "theme" "release\staging\theme\" >nul
+
+> "release\staging\README.txt" (
 echo docserver 离线运行包
 echo.
-echo 1. 将整个仓库拷到离线机
-echo 2. 编辑 run.bat 顶部 SOURCE、OUT
+echo 1. 解压到目标目录
+echo 2. 编辑 project.yaml 或 run.bat 顶部 SOURCE、OUT
 echo 3. 运行 run.bat，用 Nginx 托管 OUT 目录
 echo.
 echo 可执行文件: release\bin\docserver-sync.exe
 )
 
+tar -a -c -f "release\docserver-offline-win-amd64.zip" -C "release\staging" .
+mkdir "release\bin"
+copy /y "dist\docserver-sync.exe" "release\bin\docserver-sync.exe" >nul
+
 echo.
 echo 完成。产物:
+echo   release\docserver-offline-win-amd64.zip
 echo   release\bin\docserver-sync.exe
 echo   offline-packages\
 echo   output\smoke-test\
-echo 下一步: 拷到离线机后运行 run.bat
+echo 下一步: 将 zip 拷到离线机解压后运行 run.bat
 pause

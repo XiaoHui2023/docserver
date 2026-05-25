@@ -3,16 +3,50 @@
 # 用法：编辑下方变量后，在仓库根执行 bash run.sh
 set -euo pipefail
 
-# ---------- 按需修改 ----------
-SOURCE="${DOCSERVER_SOURCE:-example/source}"
-OUT="${DOCSERVER_OUT:-output/site}"
-BASE_URL="${DOCSERVER_BASE_URL:-/}"
-SITE_NAME="${DOCSERVER_SITE_NAME:-文档}"
-SITE_URL="${DOCSERVER_SITE_URL:-}"
+# ---------- 默认值（可被 project.yaml 或环境变量覆盖）----------
+SOURCE="example/source"
+OUT="output/site"
+BASE_URL="/"
+SITE_NAME="文档"
+SITE_URL=""
 # ------------------------------
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
+
+load_project_yaml() {
+  local f="$ROOT/project.yaml"
+  [[ -f "$f" ]] || return 0
+  local line key val
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%%#*}"
+    line="${line#"${line%%[![:space:]]*}"}"
+    [[ -z "$line" ]] && continue
+    [[ "$line" =~ ^([A-Za-z0-9_]+):[[:space:]]*(.*)$ ]] || continue
+    key="${BASH_REMATCH[1]}"
+    val="${BASH_REMATCH[2]}"
+    val="${val#"${val%%[![:space:]]*}"}"
+    val="${val%"${val##*[![:space:]]}"}"
+    val="${val%\"}"
+    val="${val#\"}"
+    val="${val%\'}"
+    val="${val#\'}"
+    case "$key" in
+      source) SOURCE="$val" ;;
+      out) OUT="$val" ;;
+      base_url) BASE_URL="$val" ;;
+      site_name) SITE_NAME="$val" ;;
+      site_url) SITE_URL="$val" ;;
+    esac
+  done <"$f"
+}
+
+load_project_yaml
+[[ -n "${DOCSERVER_SOURCE:-}" ]] && SOURCE="$DOCSERVER_SOURCE"
+[[ -n "${DOCSERVER_OUT:-}" ]] && OUT="$DOCSERVER_OUT"
+[[ -n "${DOCSERVER_BASE_URL:-}" ]] && BASE_URL="$DOCSERVER_BASE_URL"
+[[ -n "${DOCSERVER_SITE_NAME:-}" ]] && SITE_NAME="$DOCSERVER_SITE_NAME"
+[[ -n "${DOCSERVER_SITE_URL:-}" ]] && SITE_URL="$DOCSERVER_SITE_URL"
 
 resolve_path() {
   local p="$1"
