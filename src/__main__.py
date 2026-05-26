@@ -10,11 +10,17 @@ from session_log import session
 from watch import watch_and_build
 
 
-def _is_script_token(token: str) -> bool:
-    return (
-        token == "src"
-        or token.endswith(("/src", "\\src"))
-        or token.endswith("__main__.py")
+def _is_script_entry_token(token: str) -> bool:
+    """是否为 ``python src`` / ``python …/__main__.py`` 的入口脚本参数。"""
+    if token.endswith("__main__.py"):
+        return True
+    return Path(token).name == "src"
+
+
+def _is_python_launcher(argv0: str) -> bool:
+    name = Path(argv0).name.lower()
+    return name in ("python", "python3", "python.exe", "python3.exe") or name.startswith(
+        "python"
     )
 
 
@@ -25,19 +31,19 @@ def _normalize_argv(argv: list[str]) -> list[str]:
     head, *rest = argv
     cleaned: list[str] = []
     want_watch = False
-    for token in rest:
+    # 仅去掉紧跟 python 的入口脚本名；勿把 -s 的源路径（如名为 src 的目录）删掉
+    drop_entry = bool(rest) and _is_python_launcher(head) and _is_script_entry_token(rest[0])
+    for token in rest[1:] if drop_entry else rest:
         if token in ("build", "watch"):
             if token == "watch":
                 want_watch = True
-            continue
-        if _is_script_token(token):
             continue
         cleaned.append(token)
     if head in ("build", "watch"):
         if head == "watch":
             want_watch = True
         head = sys.executable or "docserver"
-    elif head == "src" or _is_script_token(head):
+    elif head == "src" or _is_script_entry_token(head):
         head = sys.executable or "docserver"
     if want_watch and "--watch" not in cleaned:
         cleaned.insert(0, "--watch")

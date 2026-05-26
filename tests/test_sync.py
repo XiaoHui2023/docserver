@@ -28,6 +28,14 @@ from scan import scan_source, scan_sources  # noqa: E402
 from staging import sync_to_work  # noqa: E402
 from watch import _format_changed_files, _snapshot, _watchable_source_file  # noqa: E402
 
+import importlib.util
+
+_main_spec = importlib.util.spec_from_file_location("docserver_main", SRC / "__main__.py")
+assert _main_spec and _main_spec.loader
+_docserver_main = importlib.util.module_from_spec(_main_spec)
+_main_spec.loader.exec_module(_docserver_main)
+_normalize_argv = _docserver_main._normalize_argv
+
 
 class TestDocserver(unittest.TestCase):
     def test_entry_names(self) -> None:
@@ -409,6 +417,33 @@ class TestDocserver(unittest.TestCase):
             validate_staging_dir(out, staging)
             with self.assertRaises(ValueError):
                 validate_staging_dir(out, out)
+
+    def test_normalize_argv_keeps_source_named_src(self) -> None:
+        argv = [
+            "docserver-sync",
+            "-s",
+            "example/source",
+            "src",
+            "-o",
+            "dist",
+            "--watch",
+        ]
+        out = _normalize_argv(argv)
+        self.assertIn("src", out)
+        self.assertEqual(out.count("-s"), 1)
+
+    def test_normalize_argv_keeps_absolute_path_ending_in_src(self) -> None:
+        doc_src = "/data/myproject/src"
+        argv = ["docserver-sync", "-s", "a", doc_src, "-o", "out"]
+        out = _normalize_argv(argv)
+        self.assertIn(doc_src, out)
+
+    def test_normalize_argv_strips_python_src_entry(self) -> None:
+        argv = ["python", "src", "-s", "example/source", "-o", "dist"]
+        out = _normalize_argv(argv)
+        self.assertNotIn("src", out)
+        self.assertIn("-s", out)
+        self.assertIn("example/source", out)
 
     @patch("build_site._build_to_staging_and_publish")
     def test_build_invokes_mkdocs(self, mock_publish) -> None:
