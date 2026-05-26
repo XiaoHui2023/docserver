@@ -54,8 +54,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "-s",
         "--source",
         type=Path,
+        nargs="+",
         required=True,
-        help="源文档根目录（含 Markdown 与静态资源）",
+        metavar="DIR",
+        help="源文档根目录，可多次指定；按顺序深合并，同路径后者覆盖前者",
     )
     parser.add_argument(
         "-o",
@@ -115,7 +117,7 @@ def main() -> int:
         parser.print_help()
         return 0
     args = parser.parse_args(argv)
-    args.source = args.source.resolve()
+    args.sources = [p.resolve() for p in args.source]
     args.out = args.out.resolve()
     if args.watch:
         return _run_watch(args)
@@ -126,7 +128,7 @@ def _run_build(args: argparse.Namespace) -> int:
     with session(args.log):
         try:
             build_docs(
-                args.source,
+                args.sources,
                 args.out,
                 base_url=args.base_url,
                 site_url=args.site_url,
@@ -149,7 +151,7 @@ def _run_watch(args: argparse.Namespace) -> int:
     with session(args.log):
         try:
             watch_and_build(
-                args.source,
+                args.sources,
                 args.out,
                 base_url=args.base_url,
                 site_url=args.site_url,

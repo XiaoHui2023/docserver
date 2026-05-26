@@ -5,7 +5,9 @@ import shutil
 from pathlib import Path
 
 from paths import MANIFEST_NAME, docs_dir
-from scan import FileEntry, scan_source
+from collections.abc import Sequence
+
+from scan import FileEntry, scan_sources
 
 # 由 install_theme_assets 写入，勿当作源目录镜像的一部分删除
 _RESERVED_DOC_TOP_DIRS = frozenset({"stylesheets", "javascripts"})
@@ -45,19 +47,22 @@ def _write_manifest(work_root: Path, entries: list[FileEntry]) -> None:
 
 
 def sync_to_work(
-  source: Path,
+  sources: Path | Sequence[Path],
   work_root: Path,
   *,
   clean: bool = False,
   verbose: bool = False,
 ) -> list[FileEntry]:
-  """将源目录镜像到工作区 docs/（入口 Markdown 规范为 index.md）。"""
-  source = source.resolve()
+  """将源目录（可多个，按顺序深合并）镜像到工作区 docs/。"""
+  if isinstance(sources, Path):
+    roots = [sources.resolve()]
+  else:
+    roots = [p.resolve() for p in sources]
   work_root = work_root.resolve()
   docs = docs_dir(work_root)
   docs.mkdir(parents=True, exist_ok=True)
 
-  entries = scan_source(source)
+  entries = scan_sources(roots)
   current = {e.dest_rel for e in entries}
   _prune_orphaned_docs(docs, current)
 
@@ -66,7 +71,8 @@ def sync_to_work(
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(entry.source, dest)
     if verbose:
-      print(f"  {entry.rel_source} -> docs/{entry.dest_rel}")
+      prefix = f"[{entry.source_root.name}] " if len(roots) > 1 else ""
+      print(f"  {prefix}{entry.rel_source} -> docs/{entry.dest_rel}")
 
   _write_manifest(work_root, entries)
   return entries

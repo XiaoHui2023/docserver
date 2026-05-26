@@ -6,8 +6,8 @@
 
 | 环节 | 说明 |
 | --- | --- |
-| 输入 | 单一源目录：递归包含 `.md` 与图片等任意静态文件 |
-| 入口页 | 每层目录可用 `readme` / `README` / `index` 等（不区分大小写）作为该层首页，构建时统一为 `index.md` |
+| 输入 | 一个或多个源目录（`-s` 可重复）；按顺序深合并，同相对路径后者覆盖前者 |
+| 入口页 | 每层目录在 `index` / `readme`（多种大小写）中择一作首页 → `index.md`；同目录其余入口文件保留原名作为普通页面 |
 | 导航 | 目录结构即站点结构；各层 `.pages` 控制侧栏顺序与分组标题（取自入口页一级标题） |
 | 输出 | `-o` / `--out` 指向的目录即为静态站点根（含 `index.html`），可直接交给 Nginx / 对象存储 |
 | 子路径 | `--base-url /xxx` 用于部署在 `https://域名/xxx/` 下；可用 `--site-url` 指定完整 canonical URL |
@@ -19,7 +19,7 @@
 
 | 长参数 | 短参数 | 说明 |
 | --- | --- | --- |
-| `--source` | `-s` | 源文档根目录（必填） |
+| `--source` | `-s` | 源文档根目录，可写多次（必填） |
 | `--out` | `-o` | 构建产物目录（必填） |
 | `--base-url` | | 子路径前缀，默认 `/` |
 | `--site-url` | | 覆盖由 base-url 推导的 `site_url` |
@@ -35,6 +35,7 @@
 
 ```bash
 python src -s example/source -o dist
+python src -s base/docs -s overlay -o dist
 python src -s example/source -o dist --base-url /docs
 python src -s example/source -o dist --watch --interval 2
 ```

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 from mkdocs_config import normalize_base_url, site_url_from_base, write_mkdocs_yml
@@ -67,8 +68,14 @@ def _run_mkdocs(
   subprocess.run(cmd, check=True)
 
 
+def _source_roots(source: Path | Sequence[Path]) -> list[Path]:
+  if isinstance(source, Path):
+    return [source.resolve()]
+  return [p.resolve() for p in source]
+
+
 def prepare_work(
-  source: Path,
+  source: Path | Sequence[Path],
   out_root: Path,
   *,
   base_url: str = "/",
@@ -77,14 +84,14 @@ def prepare_work(
   verbose: bool = False,
 ) -> tuple[Path, int]:
   """同步源目录到工作区并生成 mkdocs.yml，返回 (config_path, 页面数)。"""
-  source = source.resolve()
+  roots = _source_roots(source)
   out_root = out_root.resolve()
   out_root.mkdir(parents=True, exist_ok=True)
 
   work = work_dir_for(out_root)
   work.mkdir(parents=True, exist_ok=True)
 
-  entries = sync_to_work(source, work, clean=True, verbose=verbose)
+  entries = sync_to_work(roots, work, clean=True, verbose=verbose)
   page_count = sum(1 for e in entries if e.is_markdown)
   install_theme_assets(work)
   pages_written = write_pages_files(docs_dir(work), entries)
@@ -106,7 +113,7 @@ def prepare_work(
 
 
 def build_docs(
-  source: Path,
+  source: Path | Sequence[Path],
   out_root: Path,
   *,
   base_url: str = "/",
