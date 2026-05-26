@@ -1,6 +1,7 @@
 (function () {
   "use strict";
 
+  var navIndexPaths = null;
   var navPagePaths = null;
   var metaLoading = false;
 
@@ -65,8 +66,25 @@
     }
   }
 
+  function currentPagePath() {
+    return normalizeIndexPath(normalizePathname(window.location.pathname));
+  }
+
+  function isPathLinkEnabled(target) {
+    if (!target) {
+      return false;
+    }
+    if (navIndexPaths.has(target)) {
+      return true;
+    }
+    if (target === currentPagePath()) {
+      return false;
+    }
+    return navPagePaths.has(target);
+  }
+
   function loadNavMeta(done) {
-    if (navPagePaths) {
+    if (navPagePaths && navIndexPaths) {
       done();
       return;
     }
@@ -85,12 +103,13 @@
         return res.json();
       })
       .then(function (data) {
-        var paths = data.page_paths || data.index_paths || [];
-        navPagePaths = new Set(paths);
+        navIndexPaths = new Set(data.index_paths || []);
+        navPagePaths = new Set(data.page_paths || data.index_paths || []);
         metaLoading = false;
         done();
       })
       .catch(function () {
+        navIndexPaths = null;
         navPagePaths = null;
         metaLoading = false;
         done();
@@ -99,7 +118,7 @@
 
   function applyPathBar() {
     var pathNav = document.querySelector(".md-content .md-path");
-    if (!pathNav || !navPagePaths) {
+    if (!pathNav || !navPagePaths || !navIndexPaths) {
       return;
     }
 
@@ -112,7 +131,7 @@
         return;
       }
       var target = linkTargetIndexPath(link);
-      var enabled = target !== null && navPagePaths.has(target);
+      var enabled = isPathLinkEnabled(target);
       if (enabled) {
         link.classList.remove("md-path__link--disabled");
         link.removeAttribute("aria-disabled");
