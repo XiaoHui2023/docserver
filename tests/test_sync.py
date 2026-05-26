@@ -111,6 +111,23 @@ class TestDocserver(unittest.TestCase):
         self.assertIn("/guides/install", links)
         self.assertIn("/guides/advanced/config", links)
 
+    def test_sync_clears_makefile_curdir_file_blocking_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "src"
+            work = Path(tmp) / "work"
+            src.mkdir()
+            nested = src / "makefile.curdir"
+            nested.mkdir()
+            (nested / "page.md").write_text("# Page\n", encoding="utf-8")
+            (src / "index.md").write_text("# Home\n", encoding="utf-8")
+            docs = work / "docs"
+            docs.mkdir(parents=True)
+            (docs / "makefile.curdir").write_text("gnu-make-artifact", encoding="utf-8")
+            sync_to_work(src, work, verbose=False)
+            dest = docs / "makefile.curdir" / "page.md"
+            self.assertTrue(dest.is_file())
+            self.assertTrue((docs / "makefile.curdir").is_dir())
+
     def test_remove_stale_without_clean_flag(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "src"

@@ -10,6 +10,11 @@ IGNORE_DIR_NAMES = frozenset({
   "__pycache__",
   "dist",
   "build",
+  ".docserver-cache",
+})
+# GNU Make 在 Windows 等环境下可能在工作目录留下的临时文件，勿当作文档内容
+IGNORE_FILE_NAMES = frozenset({
+  "makefile.curdir",
 })
 MANIFEST_NAME = ".docserver-manifest.json"
 NAV_META_NAME = "docserver-nav-meta.json"

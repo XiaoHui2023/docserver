@@ -4,13 +4,44 @@ import json
 import shutil
 from pathlib import Path
 
-from paths import MANIFEST_NAME, NAV_META_NAME, docs_dir
+from paths import IGNORE_FILE_NAMES, MANIFEST_NAME, NAV_META_NAME, docs_dir
 from collections.abc import Sequence
 
 from scan import FileEntry, scan_sources
 
 # 由 install_theme_assets 写入，勿当作源目录镜像的一部分删除
 _RESERVED_DOC_TOP_DIRS = frozenset({"stylesheets", "javascripts"})
+
+
+def _remove_junk_doc_files(docs: Path) -> None:
+  """删除 docs/ 内已知的非文档垃圾文件（如 GNU Make 的 makefile.curdir）。"""
+  if not docs.is_dir():
+    return
+  for name in IGNORE_FILE_NAMES:
+    candidates: set[Path] = {docs / name}
+    candidates.update(docs.rglob(name))
+    for path in candidates:
+      if not path.is_file():
+        continue
+      try:
+        path.unlink()
+      except OSError:
+        pass
+
+
+def _ensure_parent_dirs(dest: Path, docs: Path) -> None:
+  """创建目标文件的父目录；若路径上有同名文件则先删除（避免 ENOTDIR）。"""
+  try:
+    rel_parent = dest.parent.relative_to(docs)
+  except ValueError:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    return
+  cur = docs
+  for part in rel_parent.parts:
+    cur = cur / part
+    if cur.is_file():
+      cur.unlink()
+  dest.parent.mkdir(parents=True, exist_ok=True)
 
 
 def _prune_orphaned_docs(docs: Path, current: set[Path]) -> None:
@@ -28,7 +59,12 @@ def _prune_orphaned_docs(docs: Path, current: set[Path]) -> None:
     except OSError:
       continue
     parent = path.parent
-    while parent != docs and parent.is_dir() and not any(parent.iterdir()):
+    while parent != docs and parent.is_dir():
+      try:
+        if any(parent.iterdir()):
+          break
+      except OSError:
+        break
       try:
         parent.rmdir()
       except OSError:
@@ -92,14 +128,16 @@ def sync_to_work(
   work_root = work_root.resolve()
   docs = docs_dir(work_root)
   docs.mkdir(parents=True, exist_ok=True)
+  _remove_junk_doc_files(docs)
 
   entries = scan_sources(roots)
   current = {e.dest_rel for e in entries}
   _prune_orphaned_docs(docs, current)
+  _remove_junk_doc_files(docs)
 
   for entry in entries:
     dest = docs / entry.dest_rel
-    dest.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_parent_dirs(dest, docs)
     shutil.copy2(entry.source, dest)
     if verbose:
       prefix = f"[{entry.source_root.name}] " if len(roots) > 1 else ""

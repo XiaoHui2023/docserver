@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Sequence
 
 from entries import dest_rel_for_source, entry_home_priority, is_entry_md
-from paths import IGNORE_DIR_NAMES
+from paths import IGNORE_DIR_NAMES, IGNORE_FILE_NAMES
 
 
 @dataclass(frozen=True)
@@ -59,6 +59,8 @@ def _page_title(path: Path, dest_rel: Path) -> str:
 
 
 def _should_skip(rel: Path) -> bool:
+  if rel.name in IGNORE_FILE_NAMES:
+    return True
   return any(part in IGNORE_DIR_NAMES for part in rel.parts)
 
 

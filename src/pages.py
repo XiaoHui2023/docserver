@@ -9,7 +9,10 @@ def _dir_contains_markdown(docs_root: Path, rel_dir: Path) -> bool:
     target = docs_root / rel_dir
     if not target.is_dir():
         return False
-    return any(path.is_file() for path in target.rglob("*.md"))
+    try:
+        return any(path.is_file() for path in target.rglob("*.md"))
+    except OSError:
+        return False
 
 
 def _dir_titles(entries: list[FileEntry]) -> dict[Path, str]:
@@ -29,7 +32,11 @@ def _list_dir_content(docs_root: Path, dir_path: Path) -> tuple[list[str], list[
         return [], []
     md_files: list[str] = []
     subdirs: list[str] = []
-    for child in sorted(full.iterdir(), key=lambda p: p.name.lower()):
+    try:
+        children = sorted(full.iterdir(), key=lambda p: p.name.lower())
+    except OSError:
+        return [], []
+    for child in children:
         if child.name.startswith(".") or child.name == ".pages":
             continue
         if child.is_dir():
