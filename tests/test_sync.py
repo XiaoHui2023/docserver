@@ -17,8 +17,11 @@ from paths import (  # noqa: E402
     DEFAULT_CACHE_DIR_NAME,
     NAV_META_NAME,
     resolve_cache_dir,
+    staging_dir_for,
     validate_out_and_cache,
+    validate_staging_dir,
 )
+from publish import publish_staging_to_out  # noqa: E402
 from pages import _format_pages_yaml, write_pages_files  # noqa: E402
 from session_log import log_file_path  # noqa: E402
 from scan import scan_source, scan_sources  # noqa: E402
@@ -181,6 +184,8 @@ class TestDocserver(unittest.TestCase):
             self.assertIn("/", meta["index_paths"])
             self.assertIn("/guides/advanced/", meta["index_paths"])
             self.assertNotIn("/guides/", meta["index_paths"])
+            self.assertIn("/guides/install/", meta["page_paths"])
+            self.assertNotIn("/guides/", meta["page_paths"])
 
     def test_sync_writes_pages(self) -> None:
         source = ROOT / "example" / "source"
@@ -360,8 +365,36 @@ class TestDocserver(unittest.TestCase):
         mock_inprocess.assert_called_once()
         mock_run.assert_not_called()
 
-    @patch("build_site._run_mkdocs")
-    def test_build_invokes_mkdocs(self, mock_mkdocs) -> None:
+    def test_publish_staging_to_out(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "site"
+            staging = staging_dir_for(out)
+            out.mkdir()
+            (out / "old.txt").write_text("old", encoding="utf-8")
+            staging.mkdir()
+            (staging / "index.html").write_text("<html></html>", encoding="utf-8")
+            search_dir = staging / "search"
+            search_dir.mkdir()
+            (search_dir / "search_index.json").write_text("{}", encoding="utf-8")
+
+            publish_staging_to_out(staging, out)
+
+            self.assertFalse(staging.exists())
+            self.assertTrue((out / "search" / "search_index.json").is_file())
+            self.assertFalse((out / "old.txt").exists())
+
+    def test_validate_staging_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "site"
+            staging = staging_dir_for(out)
+            out.mkdir()
+            staging.mkdir()
+            validate_staging_dir(out, staging)
+            with self.assertRaises(ValueError):
+                validate_staging_dir(out, out)
+
+    @patch("build_site._build_to_staging_and_publish")
+    def test_build_invokes_mkdocs(self, mock_publish) -> None:
         from build_site import build_docs
 
         source = ROOT / "example" / "source"
@@ -369,7 +402,7 @@ class TestDocserver(unittest.TestCase):
             out = Path(tmp) / "site"
             count = build_docs(source, out, verbose=False)
             self.assertGreaterEqual(count, 3)
-            mock_mkdocs.assert_called_once()
+            mock_publish.assert_called_once()
 
 
 if __name__ == "__main__":

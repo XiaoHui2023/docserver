@@ -7,7 +7,14 @@ from pathlib import Path
 
 from mkdocs_config import normalize_base_url, site_url_from_base, write_mkdocs_yml
 from pages import write_pages_files
-from paths import docs_dir, resolve_cache_dir, validate_out_and_cache
+from paths import (
+  docs_dir,
+  resolve_cache_dir,
+  staging_dir_for,
+  validate_out_and_cache,
+  validate_staging_dir,
+)
+from publish import publish_staging_to_out
 from session_log import format_timestamp, note
 from staging import sync_to_work
 from theme_assets import install_theme_assets
@@ -90,7 +97,9 @@ def prepare_work(
   out_root.mkdir(parents=True, exist_ok=True)
 
   work = resolve_cache_dir(cache_dir)
+  staging = staging_dir_for(out_root)
   validate_out_and_cache(out_root, work)
+  validate_staging_dir(out_root, staging)
   work.mkdir(parents=True, exist_ok=True)
 
   entries = sync_to_work(roots, work, clean=True, verbose=verbose)
@@ -106,6 +115,7 @@ def prepare_work(
 
   if verbose:
     print(f"构建缓存: {work}")
+    print(f"构建暂存: {staging}")
     print(
       f"已准备 {page_count} 个页面、{pages_written} 个 .pages，"
       f"base_url={normalize_base_url(base_url)!r}"
@@ -113,6 +123,18 @@ def prepare_work(
     print(f"site_url: {site_url or site_url_from_base(base_url)}")
 
   return config_path, page_count
+
+
+def _build_to_staging_and_publish(
+  config_path: Path,
+  out_root: Path,
+  *,
+  verbose: bool = False,
+) -> None:
+  staging = staging_dir_for(out_root)
+  validate_staging_dir(out_root, staging)
+  _run_mkdocs(config_path, staging, verbose=verbose, clean_site=True)
+  publish_staging_to_out(staging, out_root)
 
 
 def build_docs(
@@ -136,7 +158,7 @@ def build_docs(
     site_name=site_name,
     verbose=verbose,
   )
-  _run_mkdocs(config_path, out_root.resolve(), verbose=verbose, clean_site=True)
+  _build_to_staging_and_publish(config_path, out_root.resolve(), verbose=verbose)
   note(f"构建结束: {format_timestamp()}")
   return page_count
 
@@ -147,5 +169,5 @@ def rebuild_docs(
   *,
   verbose: bool = False,
 ) -> None:
-  """增量重建（不 --clean），供 watch 在静态服务运行时使用。"""
-  _run_mkdocs(config_path, out_root.resolve(), verbose=verbose, clean_site=False)
+  """监视模式下重建：写入暂存目录，成功后一次性替换输出目录。"""
+  _build_to_staging_and_publish(config_path, out_root.resolve(), verbose=verbose)

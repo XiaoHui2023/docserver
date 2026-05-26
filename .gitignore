@@ -29,6 +29,8 @@ htmlcov/
 dist/
 dist-*/
 .docserver-cache/
+*.staging/
+*.old/
 *.work/
 /.docserver-manifest.json
 /cache/

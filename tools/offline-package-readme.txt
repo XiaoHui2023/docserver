@@ -9,6 +9,10 @@ docserver 离线运行包
   构建缓存：默认在当前目录生成 .docserver-cache/（含中间 docs/、mkdocs.yml）；
   可在 run 脚本中设置 CACHE_DIR 指向其它目录。OUT 仅为可部署的静态站点。
 
+  构建时会在 OUT 旁生成临时目录 OUT.staging/（如 dist.staging），MkDocs 只写入该目录；
+  构建成功后将整目录一次性替换为 OUT，因此构建过程中 OUT 内文件（含 search/）保持不变。
+  OUT.staging/、OUT.old/ 为过程目录，勿作部署或预览根目录。
+
 二、BASE_URL 与 SITE_URL（子路径部署必读）
 
   run.sh / run.bat 中的变量对应命令行 --base-url、--site-url。

@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var navIndexPaths = null;
+  var navPagePaths = null;
   var metaLoading = false;
 
   function siteBase() {
@@ -51,23 +51,22 @@
     return norm + "/";
   }
 
-  function pathSegments(pathname) {
-    var norm = normalizePathname(pathname);
-    if (norm === "/") {
-      return [];
+  function linkTargetIndexPath(link) {
+    var href = link.getAttribute("href");
+    if (!href || href.charAt(0) === "#") {
+      return null;
     }
-    return norm.split("/").filter(Boolean);
-  }
-
-  function directoryIndexPath(segments, depth) {
-    if (depth <= 0) {
-      return "/";
+    try {
+      return normalizeIndexPath(
+        new URL(href, window.location.href).pathname
+      );
+    } catch (e) {
+      return null;
     }
-    return "/" + segments.slice(0, depth).join("/") + "/";
   }
 
   function loadNavMeta(done) {
-    if (navIndexPaths) {
+    if (navPagePaths) {
       done();
       return;
     }
@@ -86,12 +85,13 @@
         return res.json();
       })
       .then(function (data) {
-        navIndexPaths = new Set(data.index_paths || []);
+        var paths = data.page_paths || data.index_paths || [];
+        navPagePaths = new Set(paths);
         metaLoading = false;
         done();
       })
       .catch(function () {
-        navIndexPaths = new Set();
+        navPagePaths = null;
         metaLoading = false;
         done();
       });
@@ -99,31 +99,20 @@
 
   function applyPathBar() {
     var pathNav = document.querySelector(".md-content .md-path");
-    if (!pathNav || !navIndexPaths) {
+    if (!pathNav || !navPagePaths) {
       return;
     }
 
-    var segments = pathSegments(window.location.pathname);
-    var pagePath = normalizePathname(window.location.pathname);
     var items = pathNav.querySelectorAll(".md-path__item");
 
-    items.forEach(function (item, index) {
+    items.forEach(function (item) {
       var link = item.querySelector(".md-path__link");
       item.classList.remove("md-path__item--disabled");
       if (!link) {
         return;
       }
-      var isLast = index === items.length - 1;
-      var canonical = isLast
-        ? pagePath
-        : directoryIndexPath(segments, index);
-      if (
-        isLast &&
-        navIndexPaths.has(directoryIndexPath(segments, segments.length))
-      ) {
-        canonical = directoryIndexPath(segments, segments.length);
-      }
-      var enabled = navIndexPaths.has(normalizeIndexPath(canonical));
+      var target = linkTargetIndexPath(link);
+      var enabled = target !== null && navPagePaths.has(target);
       if (enabled) {
         link.classList.remove("md-path__link--disabled");
         link.removeAttribute("aria-disabled");

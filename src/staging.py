@@ -46,15 +46,33 @@ def _write_manifest(work_root: Path, entries: list[FileEntry]) -> None:
   )
 
 
+def _normalize_nav_path(link: str) -> str:
+  if link == "/":
+    return "/"
+  return link.rstrip("/") + "/"
+
+
 def _write_nav_meta(docs: Path, entries: list[FileEntry]) -> None:
-  """侧栏/面包屑脚本用：有目录入口 index 的 URL 路径集合。"""
+  """面包屑脚本用：index_paths 为目录入口页；page_paths 为全部 Markdown 页面。"""
   index_paths = sorted(
-    {e.link for e in entries if e.is_markdown and e.dest_rel.stem == "index"}
+    {
+      _normalize_nav_path(e.link)
+      for e in entries
+      if e.is_markdown and e.dest_rel.stem == "index"
+    }
+  )
+  page_paths = sorted(
+    {_normalize_nav_path(e.link) for e in entries if e.is_markdown}
   )
   js_dir = docs / "javascripts"
   js_dir.mkdir(parents=True, exist_ok=True)
   (js_dir / NAV_META_NAME).write_text(
-    json.dumps({"index_paths": index_paths}, ensure_ascii=False, indent=2) + "\n",
+    json.dumps(
+      {"index_paths": index_paths, "page_paths": page_paths},
+      ensure_ascii=False,
+      indent=2,
+    )
+    + "\n",
     encoding="utf-8",
   )
 
