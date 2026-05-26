@@ -1,6 +1,7 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
-cd /d "%~dp0"
+set "ROOT=%~dp0"
+cd /d "%ROOT%"
 
 REM SOURCES - one directory per line in the FOR list below (same idea as run.sh)
 set "SRC_ARGS="
@@ -16,7 +17,7 @@ set "SITE_NAME=文档"
 set "SITE_URL="
 set "LOG="
 
-set "SYNC=release\bin\docserver-sync.exe"
+set "SYNC=%ROOT%release\bin\docserver-sync.exe"
 set "EXTRA="
 if defined SITE_URL set "EXTRA=--site-url %SITE_URL%"
 if defined CACHE_DIR set "EXTRA=%EXTRA% --cache-dir "%CACHE_DIR%""

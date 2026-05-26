@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
 
 SOURCES=(
   example/source
@@ -13,7 +14,7 @@ SITE_NAME=文档
 SITE_URL=
 LOG=
 
-SYNC=release/bin/docserver-sync
+SYNC="$ROOT/release/bin/docserver-sync"
 ARGS=(
   -s "${SOURCES[@]}"
   -o "$OUT"
