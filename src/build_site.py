@@ -7,7 +7,7 @@ from pathlib import Path
 
 from mkdocs_config import normalize_base_url, site_url_from_base, write_mkdocs_yml
 from pages import write_pages_files
-from paths import docs_dir, work_dir_for
+from paths import docs_dir, resolve_cache_dir, validate_out_and_cache
 from session_log import format_timestamp, note
 from staging import sync_to_work
 from theme_assets import install_theme_assets
@@ -78,17 +78,19 @@ def prepare_work(
   source: Path | Sequence[Path],
   out_root: Path,
   *,
+  cache_dir: Path | None = None,
   base_url: str = "/",
   site_url: str | None = None,
   site_name: str = "文档",
   verbose: bool = False,
 ) -> tuple[Path, int]:
-  """同步源目录到工作区并生成 mkdocs.yml，返回 (config_path, 页面数)。"""
+  """同步源目录到构建缓存并生成 mkdocs.yml，返回 (config_path, 页面数)。"""
   roots = _source_roots(source)
   out_root = out_root.resolve()
   out_root.mkdir(parents=True, exist_ok=True)
 
-  work = work_dir_for(out_root)
+  work = resolve_cache_dir(cache_dir)
+  validate_out_and_cache(out_root, work)
   work.mkdir(parents=True, exist_ok=True)
 
   entries = sync_to_work(roots, work, clean=True, verbose=verbose)
@@ -103,6 +105,7 @@ def prepare_work(
   )
 
   if verbose:
+    print(f"构建缓存: {work}")
     print(
       f"已准备 {page_count} 个页面、{pages_written} 个 .pages，"
       f"base_url={normalize_base_url(base_url)!r}"
@@ -116,6 +119,7 @@ def build_docs(
   source: Path | Sequence[Path],
   out_root: Path,
   *,
+  cache_dir: Path | None = None,
   base_url: str = "/",
   site_url: str | None = None,
   site_name: str = "文档",
@@ -126,6 +130,7 @@ def build_docs(
   config_path, page_count = prepare_work(
     source,
     out_root,
+    cache_dir=cache_dir,
     base_url=base_url,
     site_url=site_url,
     site_name=site_name,

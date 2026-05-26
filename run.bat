@@ -10,6 +10,7 @@ for %%S in (
 ) do set "SRC_ARGS=!SRC_ARGS! -s "%%S""
 
 set "OUT=output\site"
+set "CACHE_DIR="
 set "BASE_URL=/"
 set "SITE_NAME=文档"
 set "SITE_URL="
@@ -18,6 +19,7 @@ set "LOG="
 set "SYNC=release\bin\docserver-sync.exe"
 set "EXTRA="
 if defined SITE_URL set "EXTRA=--site-url %SITE_URL%"
+if defined CACHE_DIR set "EXTRA=%EXTRA% --cache-dir "%CACHE_DIR%""
 if defined LOG set "EXTRA=%EXTRA% --log "%LOG%""
 
 "%SYNC%" !SRC_ARGS! -o "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" %EXTRA% --watch

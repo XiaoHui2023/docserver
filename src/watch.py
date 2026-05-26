@@ -6,10 +6,14 @@ from pathlib import Path
 
 from build_site import prepare_work, rebuild_docs
 from session_log import format_timestamp, note
-from paths import IGNORE_DIR_NAMES
+from paths import IGNORE_DIR_NAMES, WATCH_SOURCE_SUFFIXES, resolve_cache_dir
 from theme_assets import engine_watch_paths
 
 _WATCH_SKIP_DIR_NAMES = IGNORE_DIR_NAMES | frozenset({".pytest_cache", ".mypy_cache"})
+
+
+def _watchable_source_file(path: Path) -> bool:
+  return path.suffix.lower() in WATCH_SOURCE_SUFFIXES
 
 
 def _source_roots(sources: Path | Sequence[Path]) -> list[Path]:
@@ -18,10 +22,19 @@ def _source_roots(sources: Path | Sequence[Path]) -> list[Path]:
   return [p.resolve() for p in sources]
 
 
-def _snapshot(roots: list[Path]) -> dict[Path, float]:
+def _snapshot(
+  roots: list[Path],
+  *,
+  source_roots: set[Path] | None = None,
+) -> dict[Path, float]:
+  source_set = source_roots or set()
   snap: dict[Path, float] = {}
   for root in roots:
+    root_r = root.resolve()
+    filter_source = root_r in source_set
     if root.is_file():
+      if filter_source and not _watchable_source_file(root):
+        continue
       try:
         snap[root.resolve()] = root.stat().st_mtime
       except OSError:
@@ -33,6 +46,8 @@ def _snapshot(roots: list[Path]) -> dict[Path, float]:
       if not path.is_file():
         continue
       if any(part in _WATCH_SKIP_DIR_NAMES for part in path.parts):
+        continue
+      if filter_source and not _watchable_source_file(path):
         continue
       try:
         snap[path.resolve()] = path.stat().st_mtime
@@ -124,6 +139,7 @@ def watch_and_build(
   sources: Path | Sequence[Path],
   out_root: Path,
   *,
+  cache_dir: Path | None = None,
   base_url: str = "/",
   site_url: str | None = None,
   site_name: str = "文档",
@@ -131,8 +147,9 @@ def watch_and_build(
   verbose: bool = False,
   skip_initial: bool = False,
 ) -> None:
-  """监视源目录任意文件变更并重新构建（不提供 HTTP 预览）。"""
+  """监视源目录与引擎路径变更并重新构建（不提供 HTTP 预览）。"""
   roots = _source_roots(sources)
+  source_set = {r.resolve() for r in roots}
   watch_roots = [*roots, *engine_watch_paths()]
   if len(roots) == 1:
     note(f"监视源目录: {roots[0]}")
@@ -140,8 +157,13 @@ def watch_and_build(
     note("监视源目录（按顺序合并）:")
     for root in roots:
       note(f"  - {root}")
+  note(
+    "源目录仅监视可能影响构建的后缀（如 .md、.png、.svg、.pdf 等）；"
+    "theme/、src/ 仍监视全部文件"
+  )
   note("监视引擎: theme/、构建配置等")
   note(f"输出目录: {out_root.resolve()}")
+  note(f"构建缓存: {resolve_cache_dir(cache_dir)}")
   note(f"子路径: {base_url!r}  监视间隔: {interval} 秒（Ctrl+C 结束）")
 
   def _rebuild() -> None:
@@ -149,6 +171,7 @@ def watch_and_build(
     config_path, _ = prepare_work(
       roots,
       out_root,
+      cache_dir=cache_dir,
       base_url=base_url,
       site_url=site_url,
       site_name=site_name,
@@ -159,10 +182,10 @@ def watch_and_build(
 
   if not skip_initial:
     _rebuild()
-  last = _snapshot(watch_roots)
+  last = _snapshot(watch_roots, source_roots=source_set)
   while True:
     time.sleep(interval)
-    current = _snapshot(watch_roots)
+    current = _snapshot(watch_roots, source_roots=source_set)
     changed_lines = _format_changed_files(last, current, roots, watch_roots)
     if changed_lines:
       note("检测到变更，正在重新构建…")

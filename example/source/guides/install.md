@@ -19,7 +19,7 @@ python src -s example/source -o dist
 python src -s example/source -o dist --watch
 ```
 
-会监视 `example/source` 下**任意文件**变更并自动重新构建（不提供 HTTP 服务）。
+会监视 `example/source` 下**可能影响构建的文件**（如 `.md`、图片、`.pdf`、`.txt` 等；临时/日志等后缀不会触发）并自动重新构建（不提供 HTTP 服务）。
 
 ## 本地预览
 

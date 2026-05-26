@@ -16,6 +16,41 @@ NAV_META_NAME = "docserver-nav-meta.json"
 DOCS_DIR_NAME = "docs"
 MKDOCS_FILE = "mkdocs.yml"
 
+# --watch 源目录轮询：仅这些后缀视为可能影响站点构建（引擎 theme/、src/ 仍监视全部文件）
+WATCH_SOURCE_SUFFIXES = frozenset({
+  ".md",
+  ".markdown",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".svg",
+  ".ico",
+  ".bmp",
+  ".avif",
+  ".txt",
+  ".pdf",
+  ".css",
+  ".js",
+  ".html",
+  ".htm",
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".eot",
+  ".otf",
+  ".mp4",
+  ".webm",
+  ".mp3",
+  ".wav",
+  ".ogg",
+  ".zip",
+  ".tar",
+  ".gz",
+  ".7z",
+})
+
 
 def repo_root() -> Path:
   """仓库根目录。PyInstaller onefile 下 __file__ 在临时目录，需从 cwd / 可执行文件路径向上查找 theme/。"""
@@ -36,8 +71,33 @@ def repo_root() -> Path:
   return Path.cwd()
 
 
-def work_dir_for(out_root: Path) -> Path:
-  return out_root.resolve().with_name(out_root.resolve().name + ".work")
+DEFAULT_CACHE_DIR_NAME = ".docserver-cache"
+
+
+def resolve_cache_dir(cache_dir: Path | None) -> Path:
+  """构建缓存根目录；未指定时使用当前工作目录下的 `.docserver-cache`。"""
+  if cache_dir is None:
+    return (Path.cwd() / DEFAULT_CACHE_DIR_NAME).resolve()
+  return cache_dir.resolve()
+
+
+def _is_subpath(child: Path, parent: Path) -> bool:
+  try:
+    child.resolve().relative_to(parent.resolve())
+    return True
+  except ValueError:
+    return False
+
+
+def validate_out_and_cache(out_root: Path, cache_root: Path) -> None:
+  out_r = out_root.resolve()
+  cache_r = cache_root.resolve()
+  if out_r == cache_r:
+    raise ValueError("输出目录与构建缓存目录不能相同")
+  if _is_subpath(cache_r, out_r):
+    raise ValueError("构建缓存目录不能位于输出目录内")
+  if _is_subpath(out_r, cache_r):
+    raise ValueError("输出目录不能位于构建缓存目录内")
 
 
 def docs_dir(work_root: Path) -> Path:

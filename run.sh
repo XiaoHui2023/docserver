@@ -7,6 +7,7 @@ SOURCES=(
   other/docs
 )
 OUT=output/site
+CACHE_DIR=
 BASE_URL=/
 SITE_NAME=文档
 SITE_URL=
@@ -22,6 +23,9 @@ ARGS=(
 )
 if [[ -n "$SITE_URL" ]]; then
   ARGS+=(--site-url "$SITE_URL")
+fi
+if [[ -n "$CACHE_DIR" ]]; then
+  ARGS+=(--cache-dir "$CACHE_DIR")
 fi
 if [[ -n "$LOG" ]]; then
   ARGS+=(--log "$LOG")

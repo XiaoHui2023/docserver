@@ -13,12 +13,17 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from entries import dest_rel_for_source, entry_home_priority, is_entry_md  # noqa: E402
-from paths import NAV_META_NAME  # noqa: E402
+from paths import (  # noqa: E402
+    DEFAULT_CACHE_DIR_NAME,
+    NAV_META_NAME,
+    resolve_cache_dir,
+    validate_out_and_cache,
+)
 from pages import _format_pages_yaml, write_pages_files  # noqa: E402
 from session_log import log_file_path  # noqa: E402
 from scan import scan_source, scan_sources  # noqa: E402
 from staging import sync_to_work  # noqa: E402
-from watch import _format_changed_files  # noqa: E402
+from watch import _format_changed_files, _snapshot, _watchable_source_file  # noqa: E402
 
 
 class TestDocserver(unittest.TestCase):
@@ -260,6 +265,39 @@ class TestDocserver(unittest.TestCase):
                 ["  [修改] readme.md", "  [修改] theme/x.css"],
             )
 
+    def test_watchable_source_suffix(self) -> None:
+        self.assertTrue(_watchable_source_file(Path("a.md")))
+        self.assertTrue(_watchable_source_file(Path("b.PNG")))
+        self.assertTrue(_watchable_source_file(Path("c.svg")))
+        self.assertFalse(_watchable_source_file(Path("d.log")))
+        self.assertFalse(_watchable_source_file(Path("e.tmp")))
+
+    def test_watch_snapshot_skips_irrelevant_source_suffix(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source"
+            source.mkdir()
+            md = source / "index.md"
+            log = source / "debug.log"
+            md.write_text("# x", encoding="utf-8")
+            log.write_text("noise", encoding="utf-8")
+            source_r = source.resolve()
+            snap = _snapshot([source_r], source_roots={source_r})
+            self.assertIn(md.resolve(), snap)
+            self.assertNotIn(log.resolve(), snap)
+
+    def test_watch_snapshot_includes_engine_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            theme = Path(tmp) / "theme"
+            theme.mkdir()
+            css = theme / "x.css"
+            log = theme / "build.log"
+            css.write_text("{}", encoding="utf-8")
+            log.write_text("x", encoding="utf-8")
+            theme_r = theme.resolve()
+            snap = _snapshot([theme_r], source_roots=set())
+            self.assertIn(css.resolve(), snap)
+            self.assertIn(log.resolve(), snap)
+
     def test_watch_change_added_removed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "source"
@@ -281,6 +319,36 @@ class TestDocserver(unittest.TestCase):
                     "  [新增] new.md",
                 ],
             )
+
+    def test_resolve_cache_dir_default(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cwd = Path.cwd()
+            try:
+                import os
+
+                os.chdir(tmp)
+                self.assertEqual(
+                    resolve_cache_dir(None),
+                    (Path(tmp) / DEFAULT_CACHE_DIR_NAME).resolve(),
+                )
+                custom = Path(tmp) / "my-cache"
+                self.assertEqual(resolve_cache_dir(custom), custom.resolve())
+            finally:
+                os.chdir(cwd)
+
+    def test_validate_out_and_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "site"
+            cache = Path(tmp) / "cache"
+            out.mkdir()
+            cache.mkdir()
+            validate_out_and_cache(out, cache)
+            with self.assertRaises(ValueError):
+                validate_out_and_cache(out, out)
+            nested_cache = out / "cache"
+            nested_cache.mkdir()
+            with self.assertRaises(ValueError):
+                validate_out_and_cache(out, nested_cache)
 
     @patch("build_site.subprocess.run")
     @patch("build_site._run_mkdocs_inprocess")

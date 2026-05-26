@@ -67,6 +67,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="构建产物目录（可直接作为静态站点根目录部署）",
     )
     parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="构建缓存目录（含 docs/ 与 mkdocs.yml）；省略则在当前工作目录下使用 .docserver-cache",
+    )
+    parser.add_argument(
         "--base-url",
         default="/",
         help="站点子路径前缀，如 /docs/（默认 / 表示站点在域名根）",
@@ -119,6 +126,8 @@ def main() -> int:
     args = parser.parse_args(argv)
     args.sources = [p.resolve() for p in args.source]
     args.out = args.out.resolve()
+    if args.cache_dir is not None:
+        args.cache_dir = args.cache_dir.resolve()
     if args.watch:
         return _run_watch(args)
     return _run_build(args)
@@ -130,6 +139,7 @@ def _run_build(args: argparse.Namespace) -> int:
             build_docs(
                 args.sources,
                 args.out,
+                cache_dir=args.cache_dir,
                 base_url=args.base_url,
                 site_url=args.site_url,
                 site_name=args.site_name,
@@ -153,6 +163,7 @@ def _run_watch(args: argparse.Namespace) -> int:
             watch_and_build(
                 args.sources,
                 args.out,
+                cache_dir=args.cache_dir,
                 base_url=args.base_url,
                 site_url=args.site_url,
                 site_name=args.site_name,
