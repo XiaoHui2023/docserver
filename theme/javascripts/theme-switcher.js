@@ -459,10 +459,35 @@
     return SHARE_COPIED;
   }
 
-  /** 可读中文路径的当前页 URL（pathname 为解码后的 Unicode） */
+  function decodeUriComponentSafe(part) {
+    if (!part) {
+      return part;
+    }
+    try {
+      return decodeURIComponent(part.replace(/\+/g, " "));
+    } catch (e) {
+      return part;
+    }
+  }
+
+  /** 复制用 URL：pathname/search/hash 中的 % 编码还原为 Unicode（如中文路径） */
   function getPageShareUrl() {
     var url = new URL(window.location.href);
-    return url.origin + url.pathname + url.search + url.hash;
+    var path = url.pathname
+      .split("/")
+      .map(function (segment) {
+        return segment ? decodeUriComponentSafe(segment) : segment;
+      })
+      .join("/");
+    var search = "";
+    if (url.search.length > 1) {
+      search = "?" + decodeUriComponentSafe(url.search.slice(1));
+    }
+    var hash = "";
+    if (url.hash.length > 1) {
+      hash = "#" + decodeUriComponentSafe(url.hash.slice(1));
+    }
+    return url.origin + path + search + hash;
   }
 
   function copyTextFallback(text) {

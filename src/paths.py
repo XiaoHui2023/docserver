@@ -12,6 +12,7 @@ IGNORE_DIR_NAMES = frozenset({
   "build",
 })
 MANIFEST_NAME = ".docserver-manifest.json"
+NAV_META_NAME = "docserver-nav-meta.json"
 DOCS_DIR_NAME = "docs"
 MKDOCS_FILE = "mkdocs.yml"
 

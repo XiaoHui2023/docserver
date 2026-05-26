@@ -1,53 +1,15 @@
 /* docserver 通用 UX（与配色方案无关） */
 
-/* 左侧导航栏：按标题/路径筛选（挂在 sidebar inner、nav 外，instant 换页不拆掉） */
-.docserver-nav-filter {
-  flex-shrink: 0;
-  padding: 0.35rem 0.65rem 0.5rem;
-  border-bottom: 1px solid var(--md-default-fg-color--lightest, #d0d7de);
+/* 正文路径条：无目录入口的层级不可点（由 path-index.js 标记） */
+.md-path__link--disabled {
+  color: var(--md-default-fg-color--light, #656d76) !important;
+  cursor: default;
+  pointer-events: none;
+  text-decoration: none;
 }
 
-.docserver-nav-filter__input {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 0.4rem 0.55rem;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--md-default-fg-color, #1f2328);
-  background-color: var(--md-default-bg-color--light, #f6f8fa);
-  border: 1px solid var(--md-default-fg-color--lightest, #d0d7de);
-  border-radius: 6px;
-  outline: none;
-}
-
-.docserver-nav-filter__input::placeholder {
-  color: var(--md-default-fg-color--light, #656d76);
-}
-
-.docserver-nav-filter__input:focus {
-  border-color: var(--md-accent-fg-color, #0969da);
-  box-shadow: 0 0 0 2px var(--md-accent-fg-color--transparent, rgba(9, 105, 218, 0.2));
-}
-
-[data-md-color-scheme="slate"] .docserver-nav-filter__input {
-  color: var(--md-default-fg-color, #e6edf3);
-  background-color: var(--md-default-bg-color--light, #161b22);
-  border-color: var(--md-default-fg-color--lightest, #30363d);
-}
-
-.docserver-nav-filter__empty {
-  display: none;
-  margin: 0.35rem 0 0;
-  font-size: 0.7rem;
-  color: var(--md-default-fg-color--light, #656d76);
-}
-
-.docserver-nav-filter--empty .docserver-nav-filter__empty {
-  display: block;
-}
-
-.md-nav__item.docserver-nav-filter--hidden {
-  display: none;
+.md-path__item--disabled .md-path__link:hover {
+  color: var(--md-default-fg-color--light, #656d76) !important;
 }
 
 /* 侧栏顶部与顶栏重复的站点名（含 logo 行） */

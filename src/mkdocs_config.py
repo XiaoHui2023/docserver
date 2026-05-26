@@ -9,7 +9,7 @@ def _extra_javascript_yaml_lines(work_root: Path) -> str:
     scripts = [
         "javascripts/docserver-boot.js",
         "javascripts/theme-switcher.js",
-        "javascripts/nav-filter.js",
+        "javascripts/path-index.js",
     ]
     if (work_root / "docs" / "javascripts" / "mermaid.min.js").is_file():
         scripts.insert(0, "javascripts/mermaid-init.js")
@@ -76,6 +76,8 @@ def write_mkdocs_yml(
 site_url: {resolved_site_url!r}
 docs_dir: docs
 use_directory_urls: true
+extra:
+  generator: false
 theme:
   name: material
   language: zh

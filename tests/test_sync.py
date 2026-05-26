@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -12,11 +13,12 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from entries import dest_rel_for_source, entry_home_priority, is_entry_md  # noqa: E402
+from paths import NAV_META_NAME  # noqa: E402
 from pages import _format_pages_yaml, write_pages_files  # noqa: E402
 from session_log import log_file_path  # noqa: E402
 from scan import scan_source, scan_sources  # noqa: E402
 from staging import sync_to_work  # noqa: E402
-from watch import _changed_subrepos, _format_change_dirs  # noqa: E402
+from watch import _format_changed_files  # noqa: E402
 
 
 class TestDocserver(unittest.TestCase):
@@ -156,6 +158,25 @@ class TestDocserver(unittest.TestCase):
             self.assertNotIn("image", text)
             self.assertNotIn("media", text)
 
+    def test_nav_meta_index_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "src"
+            work = Path(tmp) / "work"
+            src.mkdir()
+            (src / "index.md").write_text("# Home\n", encoding="utf-8")
+            guides = src / "guides"
+            guides.mkdir()
+            (guides / "install.md").write_text("# Install\n", encoding="utf-8")
+            adv = guides / "advanced"
+            adv.mkdir()
+            (adv / "index.md").write_text("# Advanced\n", encoding="utf-8")
+            sync_to_work(src, work, verbose=False)
+            meta_path = work / "docs" / "javascripts" / NAV_META_NAME
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            self.assertIn("/", meta["index_paths"])
+            self.assertIn("/guides/advanced/", meta["index_paths"])
+            self.assertNotIn("/guides/", meta["index_paths"])
+
     def test_sync_writes_pages(self) -> None:
         source = ROOT / "example" / "source"
         with tempfile.TemporaryDirectory() as tmp:
@@ -168,7 +189,7 @@ class TestDocserver(unittest.TestCase):
             self.assertGreaterEqual(count, 1)
             self.assertTrue((pages_root / ".pages").is_file())
 
-    def test_watch_change_dirs_by_subrepo(self) -> None:
+    def test_watch_change_files_list(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "source"
             source.mkdir()
@@ -190,11 +211,35 @@ class TestDocserver(unittest.TestCase):
             after = dict(before)
             after[g_file.resolve()] = 2.0
             after[r_file.resolve()] = 3.0
-            labels = _changed_subrepos(
+            lines = _format_changed_files(
                 before, after, [source.resolve()], [source.resolve()]
             )
-            self.assertEqual(labels, {"guides", "reference"})
-            self.assertEqual(_format_change_dirs(labels), "guides、reference")
+            self.assertEqual(
+                lines,
+                ["  [修改] guides/a.md", "  [修改] reference/b.md"],
+            )
+
+    def test_watch_change_files_truncated(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source"
+            source.mkdir()
+            before: dict[Path, float] = {}
+            after: dict[Path, float] = {}
+            for i in range(10):
+                path = source / f"f{i}.md"
+                path.write_text("x", encoding="utf-8")
+                before[path.resolve()] = 1.0
+                after[path.resolve()] = 2.0
+            lines = _format_changed_files(
+                before,
+                after,
+                [source.resolve()],
+                [source.resolve()],
+                limit=3,
+            )
+            self.assertEqual(len(lines), 4)
+            self.assertTrue(all(line.startswith("  [修改] f") for line in lines[:3]))
+            self.assertEqual(lines[-1], "  … 另有 7 个文件")
 
     def test_watch_change_root_and_engine(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -209,9 +254,33 @@ class TestDocserver(unittest.TestCase):
             before = {root_file.resolve(): 1.0, theme_file.resolve(): 1.0}
             after = {root_file.resolve(): 2.0, theme_file.resolve(): 2.0}
             roots = [source.resolve(), theme.resolve()]
-            labels = _changed_subrepos(before, after, [source.resolve()], roots)
-            self.assertEqual(labels, {"(根目录)", "theme"})
-            self.assertEqual(_format_change_dirs(labels), "theme、(根目录)")
+            lines = _format_changed_files(before, after, [source.resolve()], roots)
+            self.assertEqual(
+                lines,
+                ["  [修改] readme.md", "  [修改] theme/x.css"],
+            )
+
+    def test_watch_change_added_removed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source"
+            source.mkdir()
+            kept = source / "kept.md"
+            added = source / "new.md"
+            removed = source / "gone.md"
+            kept.write_text("k", encoding="utf-8")
+            before = {kept.resolve(): 1.0, removed.resolve(): 1.0}
+            after = {kept.resolve(): 2.0, added.resolve(): 1.0}
+            lines = _format_changed_files(
+                before, after, [source.resolve()], [source.resolve()]
+            )
+            self.assertEqual(
+                lines,
+                [
+                    "  [删除] gone.md",
+                    "  [修改] kept.md",
+                    "  [新增] new.md",
+                ],
+            )
 
     @patch("build_site.subprocess.run")
     @patch("build_site._run_mkdocs_inprocess")

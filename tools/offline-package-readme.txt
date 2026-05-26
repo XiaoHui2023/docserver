@@ -2,7 +2,7 @@ docserver 离线运行包
 
 一、构建静态站
   1. 解压到目标目录
-  2. 编辑 run.sh 或 run.bat 顶部变量（SOURCE、OUT 等）
+  2. 编辑 run.sh 或 run.bat 顶部变量（SOURCES、OUT 等）
   3. 运行 run.sh 或 run.bat（持续监视并重建，Ctrl+C 结束）
   可执行文件：release/bin/docserver-sync（Windows 为 docserver-sync.exe）
 
@@ -30,7 +30,7 @@ docserver 离线运行包
   普通文档（如 install.md）始终按文件名原样参与构建。
 
 四、文档根目录须有入口（必读）
-  SOURCE 根下也须有一份入口 Markdown，构建后 OUT 根目录才有 index.html。
+  每个 SOURCES 条目（源目录）根下也须有一份入口 Markdown；至少有一个源目录在站点根提供入口，构建后 OUT 根目录才有 index.html。
 
   若根目录只有子文件夹、正文都在深层目录，访问网站根路径 / 将没有首页。
   请至少在文档根部放置一份 index 或 readme 类入口文档。

@@ -2,7 +2,10 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-SOURCE=example/source
+SOURCES=(
+  example/source
+  other/docs
+)
 OUT=output/site
 BASE_URL=/
 SITE_NAME=文档
@@ -11,7 +14,7 @@ LOG=
 
 SYNC=release/bin/docserver-sync
 ARGS=(
-  -s "$SOURCE"
+  -s "${SOURCES[@]}"
   -o "$OUT"
   --base-url "$BASE_URL"
   --site-name "$SITE_NAME"

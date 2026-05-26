@@ -4,7 +4,7 @@ import json
 import shutil
 from pathlib import Path
 
-from paths import MANIFEST_NAME, docs_dir
+from paths import MANIFEST_NAME, NAV_META_NAME, docs_dir
 from collections.abc import Sequence
 
 from scan import FileEntry, scan_sources
@@ -46,6 +46,19 @@ def _write_manifest(work_root: Path, entries: list[FileEntry]) -> None:
   )
 
 
+def _write_nav_meta(docs: Path, entries: list[FileEntry]) -> None:
+  """侧栏/面包屑脚本用：有目录入口 index 的 URL 路径集合。"""
+  index_paths = sorted(
+    {e.link for e in entries if e.is_markdown and e.dest_rel.stem == "index"}
+  )
+  js_dir = docs / "javascripts"
+  js_dir.mkdir(parents=True, exist_ok=True)
+  (js_dir / NAV_META_NAME).write_text(
+    json.dumps({"index_paths": index_paths}, ensure_ascii=False, indent=2) + "\n",
+    encoding="utf-8",
+  )
+
+
 def sync_to_work(
   sources: Path | Sequence[Path],
   work_root: Path,
@@ -75,4 +88,5 @@ def sync_to_work(
       print(f"  {prefix}{entry.rel_source} -> docs/{entry.dest_rel}")
 
   _write_manifest(work_root, entries)
+  _write_nav_meta(docs, entries)
   return entries

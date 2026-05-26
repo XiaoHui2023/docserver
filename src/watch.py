@@ -41,7 +41,7 @@ def _snapshot(roots: list[Path]) -> dict[Path, float]:
   return snap
 
 
-_ROOT_DIR_LABEL = "(根目录)"
+_MAX_CHANGED_FILES_LISTED = 8
 
 
 def _diff_snapshots(
@@ -54,25 +54,29 @@ def _diff_snapshots(
   return changed
 
 
-def _subrepo_label(
+def _change_kind(path: Path, before: dict[Path, float], after: dict[Path, float]) -> str:
+  if path not in before:
+    return "新增"
+  if path not in after:
+    return "删除"
+  return "修改"
+
+
+def _watch_display_path(
   path: Path,
   sources: list[Path],
   engine_roots: list[Path],
 ) -> str:
-  """将变更文件归到源下一级子目录，或引擎监视根目录名。"""
+  """监视日志用的相对路径（多源时带源目录名前缀）。"""
   resolved = path.resolve()
   source_set = {s.resolve() for s in sources}
   for source in sources:
     source_r = source.resolve()
     try:
-      rel = resolved.relative_to(source_r)
+      rel = resolved.relative_to(source_r).as_posix()
       if len(sources) > 1:
-        if len(rel.parts) <= 1:
-          return f"{source_r.name}/{_ROOT_DIR_LABEL}"
-        return f"{source_r.name}/{rel.parts[0]}"
-      if len(rel.parts) <= 1:
-        return _ROOT_DIR_LABEL
-      return rel.parts[0]
+        return f"{source_r.name}/{rel}"
+      return rel
     except ValueError:
       continue
   for root in engine_roots:
@@ -80,34 +84,40 @@ def _subrepo_label(
     if root_r in source_set:
       continue
     try:
-      resolved.relative_to(root_r)
-      return root_r.name if root_r.is_dir() else root_r.stem
+      rel = resolved.relative_to(root_r).as_posix()
+      prefix = root_r.name if root_r.is_dir() else root_r.stem
+      return f"{prefix}/{rel}"
     except ValueError:
       continue
-  return resolved.parent.name
+  return resolved.name
 
 
-def _format_change_dirs(labels: set[str]) -> str:
-  root = _ROOT_DIR_LABEL
-  ordered = sorted(x for x in labels if x != root and not x.endswith(f"/{root}"))
-  rootish = [x for x in labels if x == root or x.endswith(f"/{root}")]
-  if rootish:
-    ordered.extend(sorted(rootish))
-  return "、".join(ordered)
-
-
-def _changed_subrepos(
+def _format_changed_files(
   before: dict[Path, float],
   after: dict[Path, float],
   sources: list[Path],
   watch_roots: list[Path],
-) -> set[str]:
+  *,
+  limit: int = _MAX_CHANGED_FILES_LISTED,
+) -> list[str]:
+  """返回变更文件说明行（已排序；超出 limit 时末尾追加省略提示）。"""
   paths = _diff_snapshots(before, after)
   if not paths:
-    return set()
+    return []
   source_set = {s.resolve() for s in sources}
   engine = [r for r in watch_roots if r.resolve() not in source_set]
-  return {_subrepo_label(p, sources, engine) for p in paths}
+  entries = sorted(
+    (
+      _watch_display_path(p, sources, engine),
+      _change_kind(p, before, after),
+    )
+    for p in paths
+  )
+  lines = [f"  [{kind}] {label}" for label, kind in entries[:limit]]
+  extra = len(entries) - limit
+  if extra > 0:
+    lines.append(f"  … 另有 {extra} 个文件")
+  return lines
 
 
 def watch_and_build(
@@ -153,8 +163,10 @@ def watch_and_build(
   while True:
     time.sleep(interval)
     current = _snapshot(watch_roots)
-    dirs = _changed_subrepos(last, current, roots, watch_roots)
-    if dirs:
-      note(f"检测到变更: {_format_change_dirs(dirs)}，正在重新构建…")
+    changed_lines = _format_changed_files(last, current, roots, watch_roots)
+    if changed_lines:
+      note("检测到变更，正在重新构建…")
+      for line in changed_lines:
+        note(line)
       _rebuild()
       last = current

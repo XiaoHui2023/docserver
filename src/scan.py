@@ -42,7 +42,9 @@ def _link_for_dest(dest_rel: Path) -> str:
     return "/"
   if parts[-1] == "index":
     base = "/" + "/".join(parts[:-1])
-    return base if base != "/" else "/"
+    if base == "/":
+      return "/"
+    return base + "/"
   return "/" + "/".join(parts)
 
 
