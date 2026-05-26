@@ -385,7 +385,6 @@
       .querySelectorAll(".docserver-style-picker__trigger")
       .forEach(function (btn) {
         btn.title = tip;
-        btn.setAttribute("data-tooltip", tip);
         btn.setAttribute("aria-label", tip);
       });
   }

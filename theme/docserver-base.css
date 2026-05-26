@@ -128,29 +128,6 @@ html[data-docserver-scheme-guard] .md-header :is(.md-search__form, .md-search__i
   fill: currentColor;
 }
 
-.docserver-style-picker__trigger[data-tooltip] {
-  position: relative;
-}
-
-.docserver-style-picker__trigger[data-tooltip]:hover::after,
-.docserver-style-picker__trigger[data-tooltip]:focus-visible::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  top: calc(100% + 0.35rem);
-  right: 0;
-  z-index: 5;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.7rem;
-  line-height: 1.3;
-  font-family: var(--md-text-font, sans-serif);
-  white-space: nowrap;
-  color: var(--md-default-bg-color, #fff);
-  background-color: var(--md-default-fg-color, #1f2328);
-  border-radius: 4px;
-  pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
 .docserver-style-picker__list {
   position: absolute;
   top: calc(100% + 0.25rem);
