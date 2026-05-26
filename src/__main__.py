@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from build_site import build_docs
-from project_config import find_project_yaml, load_project_yaml
+from session_log import session
 from watch import watch_and_build
 
 
@@ -54,37 +54,32 @@ def _build_parser() -> argparse.ArgumentParser:
         "-s",
         "--source",
         type=Path,
-        default=None,
-        help="源文档根目录；省略时从 project.yaml 读取",
+        required=True,
+        help="源文档根目录（含 Markdown 与静态资源）",
     )
     parser.add_argument(
         "-o",
         "--out",
         type=Path,
-        default=None,
-        help="构建产物目录；省略时从 project.yaml 读取",
+        required=True,
+        help="构建产物目录（可直接作为静态站点根目录部署）",
     )
     parser.add_argument(
         "--base-url",
-        default=None,
-        help="站点子路径前缀；省略时从 project.yaml 读取，否则为 /",
+        default="/",
+        help="站点子路径前缀，如 /docs/（默认 / 表示站点在域名根）",
     )
     parser.add_argument(
         "--site-url",
         default=None,
-        help="完整 site_url；省略时从 project.yaml 读取",
+        help="完整 site_url（覆盖由 --base-url 推导的默认值）",
     )
     parser.add_argument(
         "--site-name",
-        default=None,
-        help="站点标题；省略时从 project.yaml 读取，否则为「文档」",
+        default="文档",
+        help="站点标题",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="打印详细过程")
-    parser.add_argument(
-        "--clean",
-        action="store_true",
-        help="删除工作区中上次同步、本次已不存在的文件",
-    )
     parser.add_argument(
         "--watch",
         action="store_true",
@@ -102,6 +97,13 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="与 --watch 合用：跳过启动时首次构建",
     )
+    parser.add_argument(
+        "--log",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help="将输出写入该目录下的 年-月-日/时-分-秒.log；省略则不写文件",
+    )
     return parser
 
 
@@ -113,88 +115,61 @@ def main() -> int:
         parser.print_help()
         return 0
     args = parser.parse_args(argv)
-    try:
-        _apply_project_yaml(args, parser)
-    except ValueError as exc:
-        parser.error(str(exc))
+    args.source = args.source.resolve()
+    args.out = args.out.resolve()
     if args.watch:
         return _run_watch(args)
     return _run_build(args)
 
 
-def _apply_project_yaml(
-    args: argparse.Namespace,
-    parser: argparse.ArgumentParser,
-) -> None:
-    yaml_path = find_project_yaml()
-    cfg = load_project_yaml(yaml_path) if yaml_path else None
-
-    source = args.source or (cfg.source if cfg else None)
-    out = args.out or (cfg.out if cfg else None)
-    if source is None or out is None:
-        parser.error("需要 -s/-o，或在当前目录提供 project.yaml（含 source、out）")
-    args.source = source.resolve()
-    args.out = out.resolve()
-
-    if cfg:
-        if args.base_url is None:
-            args.base_url = cfg.base_url
-        if args.site_name is None:
-            args.site_name = cfg.site_name
-        if args.site_url is None:
-            args.site_url = cfg.site_url
-    args.base_url = args.base_url or "/"
-    args.site_name = args.site_name or "文档"
-
-
 def _run_build(args: argparse.Namespace) -> int:
-    try:
-        count = build_docs(
-            args.source,
-            args.out,
-            base_url=args.base_url,
-            site_url=args.site_url,
-            site_name=args.site_name,
-            clean=args.clean,
-            verbose=args.verbose,
-        )
-    except (FileNotFoundError, ValueError) as exc:
-        print(f"错误: {exc}", file=sys.stderr)
-        return 1
-    except subprocess.CalledProcessError as exc:
-        print(f"构建失败: MkDocs 退出码 {exc.returncode}", file=sys.stderr)
-        return 1
-    except Exception as exc:
-        print(f"构建失败: {exc}", file=sys.stderr)
-        return 1
+    with session(args.log):
+        try:
+            build_docs(
+                args.source,
+                args.out,
+                base_url=args.base_url,
+                site_url=args.site_url,
+                site_name=args.site_name,
+                verbose=args.verbose,
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            print(f"错误: {exc}", file=sys.stderr)
+            return 1
+        except subprocess.CalledProcessError as exc:
+            print(f"构建失败: MkDocs 退出码 {exc.returncode}", file=sys.stderr)
+            return 1
+        except Exception as exc:
+            print(f"构建失败: {exc}", file=sys.stderr)
+            return 1
     return 0
 
 
 def _run_watch(args: argparse.Namespace) -> int:
-    try:
-        watch_and_build(
-            args.source,
-            args.out,
-            base_url=args.base_url,
-            site_url=args.site_url,
-            site_name=args.site_name,
-            interval=args.interval,
-            clean=args.clean,
-            verbose=args.verbose,
-            skip_initial=args.skip_initial,
-        )
-    except KeyboardInterrupt:
-        print("\n已停止。")
-        return 0
-    except (FileNotFoundError, ValueError) as exc:
-        print(f"错误: {exc}", file=sys.stderr)
-        return 1
-    except subprocess.CalledProcessError as exc:
-        print(f"构建失败: MkDocs 退出码 {exc.returncode}", file=sys.stderr)
-        return 1
-    except Exception as exc:
-        print(f"构建失败: {exc}", file=sys.stderr)
-        return 1
+    with session(args.log):
+        try:
+            watch_and_build(
+                args.source,
+                args.out,
+                base_url=args.base_url,
+                site_url=args.site_url,
+                site_name=args.site_name,
+                interval=args.interval,
+                verbose=args.verbose,
+                skip_initial=args.skip_initial,
+            )
+        except KeyboardInterrupt:
+            print("\n已停止。")
+            return 0
+        except (FileNotFoundError, ValueError) as exc:
+            print(f"错误: {exc}", file=sys.stderr)
+            return 1
+        except subprocess.CalledProcessError as exc:
+            print(f"构建失败: MkDocs 退出码 {exc.returncode}", file=sys.stderr)
+            return 1
+        except Exception as exc:
+            print(f"构建失败: {exc}", file=sys.stderr)
+            return 1
     return 0
 
 

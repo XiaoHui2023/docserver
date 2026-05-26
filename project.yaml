@@ -1,6 +1,0 @@
-# docserver 运行配置（run.sh / run.bat 与 docserver-sync 读取）
-source: example/source
-out: output/site
-base_url: /
-site_name: 文档
-site_url: ""

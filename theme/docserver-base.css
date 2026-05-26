@@ -1,5 +1,60 @@
 /* docserver 通用 UX（与配色方案无关） */
 
+/* 左侧导航栏：按标题/路径筛选（挂在 sidebar inner、nav 外，instant 换页不拆掉） */
+.docserver-nav-filter {
+  flex-shrink: 0;
+  padding: 0.35rem 0.65rem 0.5rem;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest, #d0d7de);
+}
+
+.docserver-nav-filter__input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--md-default-fg-color, #1f2328);
+  background-color: var(--md-default-bg-color--light, #f6f8fa);
+  border: 1px solid var(--md-default-fg-color--lightest, #d0d7de);
+  border-radius: 6px;
+  outline: none;
+}
+
+.docserver-nav-filter__input::placeholder {
+  color: var(--md-default-fg-color--light, #656d76);
+}
+
+.docserver-nav-filter__input:focus {
+  border-color: var(--md-accent-fg-color, #0969da);
+  box-shadow: 0 0 0 2px var(--md-accent-fg-color--transparent, rgba(9, 105, 218, 0.2));
+}
+
+[data-md-color-scheme="slate"] .docserver-nav-filter__input {
+  color: var(--md-default-fg-color, #e6edf3);
+  background-color: var(--md-default-bg-color--light, #161b22);
+  border-color: var(--md-default-fg-color--lightest, #30363d);
+}
+
+.docserver-nav-filter__empty {
+  display: none;
+  margin: 0.35rem 0 0;
+  font-size: 0.7rem;
+  color: var(--md-default-fg-color--light, #656d76);
+}
+
+.docserver-nav-filter--empty .docserver-nav-filter__empty {
+  display: block;
+}
+
+.md-nav__item.docserver-nav-filter--hidden {
+  display: none;
+}
+
+/* 侧栏顶部与顶栏重复的站点名（含 logo 行） */
+.md-sidebar--primary .md-nav--primary > label.md-nav__title {
+  display: none;
+}
+
 .md-sidebar--secondary .md-nav__title,
 .md-nav--secondary > .md-nav__title {
   display: none;
@@ -9,19 +64,9 @@
   transition: color 0.15s ease, background-color 0.15s ease;
 }
 
+/* instant 换页不播正文动画，避免白闪/明暗跳变感 */
 .md-content__inner {
-  animation: docserver-page-in 0.22s ease-out;
-}
-
-@keyframes docserver-page-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  animation: none;
 }
 
 html {
@@ -31,10 +76,6 @@ html {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-
-  .md-content__inner {
-    animation: none;
   }
 
   .md-nav__link {
@@ -48,6 +89,60 @@ html {
 
 .md-typeset .headerlink {
   display: none;
+}
+
+/* instant 换页：顶栏搜索不做过渡，避免 body scheme 瞬时切换时闪一下 */
+html[data-docserver-scheme-guard] .md-header :is(.md-search__form, .md-search__input) {
+  transition: none !important;
+}
+
+/* 顶栏：复制当前页链接（路径含中文时为可读 Unicode，非 % 编码） */
+.docserver-page-share {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.docserver-page-share__trigger {
+  margin: 0;
+  transition: transform 0.1s ease;
+}
+
+.docserver-page-share__trigger:active {
+  transform: scale(0.9);
+}
+
+.docserver-page-share__trigger svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: currentColor;
+}
+
+.docserver-page-share__toast {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 6;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  font-family: var(--md-text-font, sans-serif);
+  white-space: nowrap;
+  color: var(--md-default-bg-color, #fff);
+  background-color: var(--md-default-fg-color, #1f2328);
+  border: 1px solid var(--md-default-fg-color--lightest, #d0d7de);
+  border-radius: 4px;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.docserver-page-share__toast--visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* 顶栏配色风格（宽屏）：图标按钮 + 下拉菜单 */

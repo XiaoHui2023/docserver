@@ -2,6 +2,7 @@
   "use strict";
 
   var STORAGE_KEY = "docserver-style";
+  var SCHEME_KEY = "docserver-scheme";
   var DEFAULT_STYLE = "j";
 
   /** 顺序：J 默认放首位；其余见 THEME-PALETTES.md */
@@ -99,6 +100,15 @@
   };
 
   var TRIGGER_TOOLTIP = "切换配色风格";
+  var SHARE_TOOLTIP = "复制页面链接";
+  var SHARE_COPIED = "链接已复制到剪贴板";
+
+  /** Material link-variant 图标 */
+  var SHARE_ICON =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path fill="currentColor" d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8v2m9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5"/></svg>';
+
+  var shareFeedbackTimer = null;
 
   function materialColorSlug(name) {
     return String(name).trim().toLowerCase().replace(/\s+/g, "-");
@@ -141,6 +151,163 @@
   function clearMaterialColors() {
     document.body.removeAttribute("data-md-color-primary");
     document.body.removeAttribute("data-md-color-accent");
+  }
+
+  function updateSchemeGuard(scheme) {
+    if (scheme !== "default" && scheme !== "slate") {
+      return;
+    }
+    document.documentElement.setAttribute("data-docserver-scheme-guard", scheme);
+    try {
+      localStorage.setItem(SCHEME_KEY, scheme);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function colorFromPaletteInput(input) {
+    if (!input) {
+      return null;
+    }
+    return {
+      media: input.getAttribute("data-md-color-media") || "",
+      scheme: input.getAttribute("data-md-color-scheme"),
+      primary: input.getAttribute("data-md-color-primary"),
+      accent: input.getAttribute("data-md-color-accent"),
+    };
+  }
+
+  function readPaletteFromMaterialStorage() {
+    if (typeof __md_get !== "function") {
+      return null;
+    }
+    try {
+      var palette = __md_get("__palette");
+      if (palette && palette.color) {
+        return palette.color;
+      }
+      if (typeof __md_scope !== "undefined") {
+        var rootPath = new URL("/", __md_scope).pathname;
+        var raw = localStorage.getItem(rootPath + ".__palette");
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          if (parsed && parsed.color) {
+            return parsed.color;
+          }
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return null;
+  }
+
+  /** 顶栏 radio 在 instant 换页时仍保留；Material 的 __palette 按路径分桶，不能单靠 __md_get */
+  function readPaletteColor() {
+    var checked = document.querySelector('input[name="__palette"]:checked');
+    var fromDom = colorFromPaletteInput(checked);
+    if (fromDom && fromDom.scheme) {
+      return fromDom;
+    }
+    var stored = null;
+    try {
+      var scheme = localStorage.getItem(SCHEME_KEY);
+      if (scheme === "default" || scheme === "slate") {
+        stored = { scheme: scheme };
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    var color = readPaletteFromMaterialStorage();
+    if (!color) {
+      return stored;
+    }
+    if (color.media === "(prefers-color-scheme)") {
+      var media = matchMedia("(prefers-color-scheme: light)");
+      var input = document.querySelector(
+        media.matches
+          ? "[data-md-color-media='(prefers-color-scheme: light)']"
+          : "[data-md-color-media='(prefers-color-scheme: dark)']"
+      );
+      if (input) {
+        return colorFromPaletteInput(input);
+      }
+    }
+    return color;
+  }
+
+  function pinSchemeGuard() {
+    var color = readPaletteColor();
+    if (color && color.scheme) {
+      updateSchemeGuard(color.scheme);
+      return;
+    }
+    if (document.body) {
+      var scheme = document.body.getAttribute("data-md-color-scheme");
+      if (scheme === "default" || scheme === "slate") {
+        updateSchemeGuard(scheme);
+      }
+    }
+  }
+
+  function shouldSkipMaterialColorKey(key) {
+    if (key === "primary" || key === "accent") {
+      return !!STYLES_WITH_PALETTE_CSS[getSavedStyle()];
+    }
+    return false;
+  }
+
+  /** 按 localStorage 校正 body 配色；自定义 palette CSS 时不写 primary/accent，避免 instant 换页闪一下 */
+  function applyBodyPaletteFromStorage() {
+    if (!document.body) {
+      return;
+    }
+    var color = readPaletteColor();
+    if (!color) {
+      return;
+    }
+    updateSchemeGuard(color.scheme);
+    Object.keys(color).forEach(function (key) {
+      if (key === "media" || shouldSkipMaterialColorKey(key)) {
+        return;
+      }
+      var val = color[key];
+      if (!val) {
+        return;
+      }
+      var attr = "data-md-color-" + key;
+      if (document.body.getAttribute(attr) !== val) {
+        document.body.setAttribute(attr, val);
+      }
+    });
+    if (STYLES_WITH_PALETTE_CSS[getSavedStyle()]) {
+      clearMaterialColors();
+    }
+  }
+
+  function restoreMaterialPalette() {
+    applyBodyPaletteFromStorage();
+  }
+
+  function refreshDocserverColors() {
+    var id = getSavedStyle();
+    document.documentElement.setAttribute("data-docserver-style", id);
+    if (!STYLES_WITH_PALETTE_CSS[id]) {
+      applyMaterialColors(id);
+    }
+  }
+
+  function syncPaletteRadios() {
+    if (!document.body) {
+      return;
+    }
+    var scheme = document.body.getAttribute("data-md-color-scheme");
+    if (!scheme) {
+      return;
+    }
+    document.querySelectorAll('input[name="__palette"]').forEach(function (input) {
+      input.checked = input.getAttribute("data-md-color-scheme") === scheme;
+    });
   }
 
   function closeStyleMenu(menu) {
@@ -288,9 +455,131 @@
     return menu;
   }
 
+  function clipboardCopiedMessage() {
+    return SHARE_COPIED;
+  }
+
+  /** 可读中文路径的当前页 URL（pathname 为解码后的 Unicode） */
+  function getPageShareUrl() {
+    var url = new URL(window.location.href);
+    return url.origin + url.pathname + url.search + url.hash;
+  }
+
+  function copyTextFallback(text) {
+    var area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.left = "-9999px";
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand("copy");
+    document.body.removeChild(area);
+  }
+
+  function hideShareToast(wrap) {
+    var toast = wrap && wrap.querySelector(".docserver-page-share__toast");
+    if (!toast) {
+      return;
+    }
+    toast.classList.remove("docserver-page-share__toast--visible");
+    toast.setAttribute("hidden", "");
+  }
+
+  function showShareCopiedFeedback(trigger) {
+    var wrap = trigger.closest(".docserver-page-share");
+    var toast = wrap && wrap.querySelector(".docserver-page-share__toast");
+    if (!toast) {
+      return;
+    }
+    toast.textContent = clipboardCopiedMessage();
+    toast.removeAttribute("hidden");
+    toast.classList.add("docserver-page-share__toast--visible");
+    if (shareFeedbackTimer) {
+      window.clearTimeout(shareFeedbackTimer);
+    }
+    shareFeedbackTimer = window.setTimeout(function () {
+      shareFeedbackTimer = null;
+      hideShareToast(wrap);
+    }, 1800);
+  }
+
+  function copyPageLink(trigger) {
+    var text = getPageShareUrl();
+    var done = function () {
+      showShareCopiedFeedback(trigger);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(text)
+        .then(done)
+        .catch(function () {
+          copyTextFallback(text);
+          done();
+        });
+      return;
+    }
+    copyTextFallback(text);
+    done();
+  }
+
+  function mountPageShare() {
+    var header = document.querySelector(".md-header__inner");
+    if (!header) {
+      return;
+    }
+    var search = header.querySelector("[data-md-component=search]");
+    if (!search) {
+      return;
+    }
+    var existing = document.getElementById("docserver-page-share");
+    if (existing) {
+      if (!existing.querySelector(".docserver-page-share__toast")) {
+        var legacyToast = document.createElement("span");
+        legacyToast.className = "docserver-page-share__toast";
+        legacyToast.setAttribute("role", "status");
+        legacyToast.setAttribute("aria-live", "polite");
+        legacyToast.hidden = true;
+        existing.appendChild(legacyToast);
+      }
+      return;
+    }
+
+    var wrap = document.createElement("div");
+    wrap.className = "md-header__option docserver-page-share";
+    wrap.id = "docserver-page-share";
+
+    var toast = document.createElement("span");
+    toast.className = "docserver-page-share__toast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    toast.hidden = true;
+
+    var trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "md-header__button md-icon docserver-page-share__trigger";
+    trigger.title = SHARE_TOOLTIP;
+    trigger.setAttribute("aria-label", SHARE_TOOLTIP);
+    trigger.innerHTML = SHARE_ICON;
+    trigger.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      copyPageLink(trigger);
+    });
+
+    wrap.appendChild(trigger);
+    wrap.appendChild(toast);
+    search.after(wrap);
+    reorderHeaderControls(header);
+  }
+
   function reorderHeaderControls(header) {
+    if (header.dataset.docserverHeaderOrdered === "1") {
+      return;
+    }
     var palette = header.querySelector("[data-md-component=palette]");
     var search = header.querySelector("[data-md-component=search]");
+    var pageShare = document.getElementById("docserver-page-share");
     var stylePicker = document.getElementById("docserver-style-picker-header");
     var searchLabel = header.querySelector('label[for="__search"]');
     if (!palette || !search) {
@@ -299,16 +588,23 @@
     if (searchLabel && searchLabel.nextElementSibling !== search) {
       header.insertBefore(searchLabel, search);
     }
-    if (stylePicker) {
-      if (search.nextElementSibling !== stylePicker) {
-        search.after(stylePicker);
+
+    function placeAfter(node, ref) {
+      if (node && ref && ref.nextElementSibling !== node) {
+        ref.after(node);
       }
-      if (stylePicker.nextElementSibling !== palette) {
-        stylePicker.after(palette);
-      }
-    } else if (search.nextElementSibling !== palette) {
-      search.after(palette);
     }
+
+    var anchor = search;
+    placeAfter(pageShare, anchor);
+    if (pageShare) {
+      anchor = pageShare;
+    }
+    placeAfter(stylePicker, anchor);
+    if (stylePicker) {
+      anchor = stylePicker;
+    }
+    placeAfter(palette, anchor);
     header.dataset.docserverHeaderOrdered = "1";
   }
 
@@ -317,12 +613,10 @@
     if (!header) {
       return;
     }
-    reorderHeaderControls(header);
 
     var existing = document.getElementById("docserver-style-picker-header");
     if (existing && existing.querySelector(".docserver-style-picker__trigger")) {
       syncAllPickers(getSavedStyle());
-      delete header.dataset.docserverHeaderOrdered;
       reorderHeaderControls(header);
       return;
     }
@@ -341,7 +635,6 @@
     wrap.id = "docserver-style-picker-header";
     wrap.appendChild(buildStyleMenu());
     palette.before(wrap);
-    delete header.dataset.docserverHeaderOrdered;
     reorderHeaderControls(header);
   }
 
@@ -349,8 +642,12 @@
     if (document.getElementById("docserver-style-picker-drawer")) {
       return;
     }
-    var nav = document.querySelector(".md-sidebar--primary .md-nav");
+    var nav = document.querySelector(".md-sidebar--primary .md-nav--primary");
     if (!nav) {
+      return;
+    }
+    var list = nav.querySelector(":scope > ul.md-nav__list");
+    if (!list) {
       return;
     }
 
@@ -365,7 +662,7 @@
     var select = buildSelect("docserver-style-picker__select--drawer");
     wrap.appendChild(label);
     wrap.appendChild(select);
-    nav.insertBefore(wrap, nav.firstChild);
+    nav.insertBefore(wrap, list);
   }
 
   function bindSchemeToggle() {
@@ -379,6 +676,7 @@
         if (!STYLES_WITH_PALETTE_CSS[id]) {
           applyMaterialColors(id);
         }
+        pinSchemeGuard();
       });
     });
   }
@@ -398,24 +696,58 @@
     });
   }
 
+  /** instant 换页后仅同步顶栏控件，避免重复全量初始化 */
+  function onPageReady() {
+    if (!document.body) {
+      return;
+    }
+    var saved = getSavedStyle();
+    mountPageShare();
+    mountHeaderPicker();
+    syncAllPickers(saved);
+    syncTriggerTooltip(saved);
+    mountDrawerPicker();
+    bindSchemeToggle();
+  }
+
+  /** instant 换页：只钉住 scheme-guard，不改 body（避免搜索栏重算配色） */
+  function syncAfterInstantNavigation() {
+    pinSchemeGuard();
+    refreshDocserverColors();
+    syncPaletteRadios();
+  }
+
+  function bindInstantNavigation() {
+    if (typeof location$ !== "undefined" && location$.subscribe) {
+      location$.subscribe(function () {
+        pinSchemeGuard();
+      });
+    }
+    if (typeof document$ !== "undefined" && document$.subscribe) {
+      document$.subscribe(function () {
+        syncAfterInstantNavigation();
+      });
+    }
+  }
+
   function init() {
     if (!document.body) {
       return;
     }
     var saved = getSavedStyle();
+    restoreMaterialPalette();
     applyStyle(saved, false);
-    mountHeaderPicker();
-    syncTriggerTooltip(saved);
-    mountDrawerPicker();
+    syncPaletteRadios();
     bindSchemeToggle();
     bindGlobalDismiss();
+    bindInstantNavigation();
+    pinSchemeGuard();
+    onPageReady();
   }
 
   try {
-    document.documentElement.setAttribute(
-      "data-docserver-style",
-      getSavedStyle()
-    );
+    document.documentElement.setAttribute("data-docserver-style", getSavedStyle());
+    pinSchemeGuard();
   } catch (e) {
     /* ignore */
   }
@@ -426,24 +758,7 @@
     init();
   }
 
-  window.addEventListener("pageshow", init);
-
-  document.addEventListener(
-    "click",
-    function (ev) {
-      var link = ev.target.closest && ev.target.closest("a");
-      if (!link || !link.href) {
-        return;
-      }
-      try {
-        if (link.origin !== location.origin) {
-          return;
-        }
-      } catch (e) {
-        return;
-      }
-      window.setTimeout(init, 150);
-    },
-    true
-  );
+  window.addEventListener("pageshow", function () {
+    syncAfterInstantNavigation();
+  });
 })();

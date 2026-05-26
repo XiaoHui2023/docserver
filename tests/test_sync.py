@@ -13,8 +13,10 @@ if str(SRC) not in sys.path:
 
 from entries import dest_rel_for_source, is_entry_md  # noqa: E402
 from pages import _format_pages_yaml, write_pages_files  # noqa: E402
+from session_log import log_file_path  # noqa: E402
 from scan import scan_source  # noqa: E402
 from staging import sync_to_work  # noqa: E402
+from watch import _changed_subrepos, _format_change_dirs  # noqa: E402
 
 
 class TestDocserver(unittest.TestCase):
@@ -59,6 +61,12 @@ class TestDocserver(unittest.TestCase):
             self.assertTrue((work / "docs" / "index.md").is_file())
             self.assertTrue((work / "docs" / "logo.png").is_file())
 
+    def test_log_file_path_layout(self) -> None:
+        from datetime import datetime
+
+        path = log_file_path(Path("logs"), datetime(2026, 5, 25, 14, 30, 45))
+        self.assertEqual(path, Path("logs/2026-05-25/14-30-45.log"))
+
     def test_pages_yaml_quotes_at_in_filename(self) -> None:
         text = _format_pages_yaml("分组", ["index.md", "a@b.md", "dir@name"])
         self.assertIn("'a@b.md'", text)
@@ -95,6 +103,49 @@ class TestDocserver(unittest.TestCase):
             count = write_pages_files(pages_root, entries)
             self.assertGreaterEqual(count, 1)
             self.assertTrue((pages_root / ".pages").is_file())
+
+    def test_watch_change_dirs_by_subrepo(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source"
+            source.mkdir()
+            guides = source / "guides"
+            ref = source / "reference"
+            guides.mkdir()
+            ref.mkdir()
+            g_file = guides / "a.md"
+            r_file = ref / "b.md"
+            root_file = source / "index.md"
+            g_file.write_text("a", encoding="utf-8")
+            r_file.write_text("b", encoding="utf-8")
+            root_file.write_text("c", encoding="utf-8")
+            before = {
+                g_file.resolve(): 1.0,
+                r_file.resolve(): 1.0,
+                root_file.resolve(): 1.0,
+            }
+            after = dict(before)
+            after[g_file.resolve()] = 2.0
+            after[r_file.resolve()] = 3.0
+            labels = _changed_subrepos(before, after, source, [source.resolve()])
+            self.assertEqual(labels, {"guides", "reference"})
+            self.assertEqual(_format_change_dirs(labels), "guides、reference")
+
+    def test_watch_change_root_and_engine(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source"
+            theme = Path(tmp) / "theme"
+            source.mkdir()
+            theme.mkdir()
+            root_file = source / "readme.md"
+            theme_file = theme / "x.css"
+            root_file.write_text("r", encoding="utf-8")
+            theme_file.write_text("t", encoding="utf-8")
+            before = {root_file.resolve(): 1.0, theme_file.resolve(): 1.0}
+            after = {root_file.resolve(): 2.0, theme_file.resolve(): 2.0}
+            roots = [source.resolve(), theme.resolve()]
+            labels = _changed_subrepos(before, after, source, roots)
+            self.assertEqual(labels, {"(根目录)", "theme"})
+            self.assertEqual(_format_change_dirs(labels), "theme、(根目录)")
 
     @patch("build_site.subprocess.run")
     @patch("build_site._run_mkdocs_inprocess")

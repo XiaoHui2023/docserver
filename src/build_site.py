@@ -7,6 +7,7 @@ from pathlib import Path
 from mkdocs_config import normalize_base_url, site_url_from_base, write_mkdocs_yml
 from pages import write_pages_files
 from paths import docs_dir, work_dir_for
+from session_log import format_timestamp, note
 from staging import sync_to_work
 from theme_assets import install_theme_assets
 
@@ -73,7 +74,6 @@ def prepare_work(
   base_url: str = "/",
   site_url: str | None = None,
   site_name: str = "文档",
-  clean: bool = False,
   verbose: bool = False,
 ) -> tuple[Path, int]:
   """同步源目录到工作区并生成 mkdocs.yml，返回 (config_path, 页面数)。"""
@@ -84,7 +84,7 @@ def prepare_work(
   work = work_dir_for(out_root)
   work.mkdir(parents=True, exist_ok=True)
 
-  entries = sync_to_work(source, work, clean=clean, verbose=verbose)
+  entries = sync_to_work(source, work, clean=True, verbose=verbose)
   page_count = sum(1 for e in entries if e.is_markdown)
   install_theme_assets(work)
   pages_written = write_pages_files(docs_dir(work), entries)
@@ -112,20 +112,20 @@ def build_docs(
   base_url: str = "/",
   site_url: str | None = None,
   site_name: str = "文档",
-  clean: bool = False,
   verbose: bool = False,
 ) -> int:
   """将源目录构建为可部署的静态站点。"""
+  note(f"构建开始: {format_timestamp()}")
   config_path, page_count = prepare_work(
     source,
     out_root,
     base_url=base_url,
     site_url=site_url,
     site_name=site_name,
-    clean=clean,
     verbose=verbose,
   )
   _run_mkdocs(config_path, out_root.resolve(), verbose=verbose, clean_site=True)
+  note(f"构建结束: {format_timestamp()}")
   return page_count
 
 

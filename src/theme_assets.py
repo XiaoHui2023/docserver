@@ -10,11 +10,10 @@ _REPO_THEME = _REPO_ROOT / "theme"
 
 
 def engine_watch_paths() -> list[Path]:
-    """watch 需监视的引擎路径（主题与 mkdocs 配置生成）。"""
+    """watch 需监视的引擎路径（主题、构建逻辑与 mkdocs 配置生成）。"""
     return [
         _REPO_THEME,
-        _REPO_ROOT / "src" / "mkdocs_config.py",
-        _REPO_ROOT / "src" / "theme_assets.py",
+        _REPO_ROOT / "src",
     ]
 
 

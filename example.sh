@@ -21,16 +21,18 @@ else
   "$PY" -m pip install -q -e ".[dev]"
 fi
 
-echo "[1/4] Initial build..."
+echo "[1/4] Initial build (example/source -> dist)..."
+rm -rf "$ROOT/dist"
 "$PY" src -s "$ROOT/example/source" -o "$ROOT/dist" --site-name "$SITE_NAME"
 
-echo "[2/4] Watch source in background (incremental rebuild)..."
+echo "[2/4] Watch example/source + theme/ + src/ in background..."
+echo "      UI/theme changes need watch or re-run example.sh; then hard-refresh (Ctrl+F5)."
 "$PY" src -s "$ROOT/example/source" -o "$ROOT/dist" -v \
   --site-name "$SITE_NAME" --watch --skip-initial &
 WATCH_PID=$!
 trap 'kill "$WATCH_PID" 2>/dev/null || true' EXIT
 
-echo "[3/4] Open http://127.0.0.1:${PORT}/  (refresh browser after edits)"
+echo "[3/4] Open http://127.0.0.1:${PORT}/  (hard refresh after rebuild)"
 if command -v xdg-open >/dev/null 2>&1; then
   xdg-open "http://127.0.0.1:${PORT}/" >/dev/null 2>&1 || true
 elif command -v open >/dev/null 2>&1; then

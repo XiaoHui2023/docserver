@@ -41,7 +41,6 @@ echo ==^> 组装离线压缩包 -^> release\docserver-offline-win-amd64.zip
 if exist "release\staging" rmdir /s /q "release\staging"
 mkdir "release\staging\release\bin"
 copy /y "dist\docserver-sync.exe" "release\staging\release\bin\docserver-sync.exe" >nul
-copy /y "project.yaml" "release\staging\" >nul
 copy /y "run.bat" "release\staging\" >nul
 xcopy /e /i /q "theme" "release\staging\theme\" >nul
 if exist "cache\plugin\privacy" (
@@ -49,15 +48,7 @@ if exist "cache\plugin\privacy" (
   xcopy /e /i /q "cache\plugin\privacy" "release\staging\cache\plugin\privacy\" >nul
 )
 
-> "release\staging\README.txt" (
-echo docserver 离线运行包（Windows）
-echo.
-echo 1. 解压到目标目录
-echo 2. 编辑 project.yaml 中的 source、out
-echo 3. 运行 run.bat（持续监视并重建，Ctrl+C 结束）
-echo.
-echo 可执行文件: release\bin\docserver-sync.exe
-)
+copy /y "%~dp0tools\offline-package-readme.txt" "release\staging\README.txt" >nul
 
 tar -a -c -f "release\docserver-offline-win-amd64.zip" -C "release\staging" .
 mkdir "release\bin"

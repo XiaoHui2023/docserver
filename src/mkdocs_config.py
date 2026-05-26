@@ -6,9 +6,13 @@ from paths import MKDOCS_FILE, docs_dir
 
 
 def _extra_javascript_yaml_lines(work_root: Path) -> str:
-    scripts = ["javascripts/theme-switcher.js"]
+    scripts = [
+        "javascripts/docserver-boot.js",
+        "javascripts/theme-switcher.js",
+        "javascripts/nav-filter.js",
+    ]
     if (work_root / "docs" / "javascripts" / "mermaid.min.js").is_file():
-        scripts.insert(0, "javascripts/mermaid.min.js")
+        scripts.insert(0, "javascripts/mermaid-init.js")
     return "\n".join(f"  - {name}" for name in scripts) + "\n"
 
 
@@ -78,6 +82,7 @@ theme:
   font: false
   features:
     - navigation.instant
+    - navigation.instant.prefetch
     - navigation.instant.progress
     - navigation.sections
     - navigation.expand
@@ -87,7 +92,6 @@ theme:
     - toc.follow
     - search.suggest
     - search.highlight
-    - search.share
     - content.code.copy
     - content.tooltips
   palette:

@@ -13,7 +13,7 @@ description: 本仓库：会话预加载顺序与用过的 skill 记录。
 2. `~/.cursor/skills/python-project-ai/SKILL.md`
 3. `~/.cursor/skills/readme-spa-vite-zh/SKILL.md`
 4. `~/.cursor/skills/forbidden-doc-comment-vocabulary/SKILL.md`
-5. `.cursor/skills/project-design-notes/SKILL.md`
+5. `.cursor/skills/project-design-notes/SKILL.md`（含 **Example 预览与改动生效**；改 `theme/` / `example` 前必读）
 6. `.cursor/skills/project-changelog/SKILL.md`
 
 维护本列表时 Read：`~/.cursor/skills/agent-project-preload/SKILL.md`。

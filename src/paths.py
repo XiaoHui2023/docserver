@@ -30,7 +30,7 @@ def repo_root() -> Path:
       if base in seen:
         continue
       seen.add(base)
-      if (base / "theme").is_dir() and (base / "project.yaml").is_file():
+      if (base / "theme").is_dir():
         return base
   return Path.cwd()
 

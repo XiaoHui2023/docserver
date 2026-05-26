@@ -23,7 +23,8 @@ Nginx 需将 `/docs/` 映射到 `dist/`；页面内链接会带上此前缀。
 | 参数 | 说明 |
 | --- | --- |
 | `--interval` | 监视源目录间隔（秒），默认 `2` |
-| `--clean` | 删除工作区中已不存在的同步文件 |
+
+同步时会自动删除工作区里源目录已不存在的文件，无需额外开关。
 
 ```bash
 python src -s example/source -o dist --watch --interval 1

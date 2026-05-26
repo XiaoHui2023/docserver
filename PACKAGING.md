@@ -1,6 +1,6 @@
 # 打包发布
 
-在可访问 PyPI 的机器上于仓库根执行 `build.sh` 或 `build.bat`；除 PyInstaller 可执行文件外，会组装离线压缩包：**`build.sh` → `release/docserver-offline-*.tar.gz`**（含 `run.sh`）；**`build.bat` → `docserver-offline-win-amd64.zip`**（含 `run.bat`）。公共内容：`release/bin/docserver-sync`、`project.yaml`、`theme/`。Linux 上 PyInstaller onefile 之后可选 staticx。
+在可访问 PyPI 的机器上于仓库根执行 `build.sh` 或 `build.bat`；除 PyInstaller 可执行文件外，会组装离线压缩包：**`build.sh` → `release/docserver-offline-*.tar.gz`**（含 `run.sh`）；**`build.bat` → `docserver-offline-win-amd64.zip`**（含 `run.bat`）。公共内容：`release/bin/docserver-sync`、`run.sh` 或 `run.bat`、`theme/`。Linux 上 PyInstaller onefile 之后可选 staticx。
 
 打包产物内含 MkDocs Material 运行依赖，体积较大；若目标环境可联网，更推荐在目标机使用 `pip install -e .` 与 `python src`。
 
