@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 在线机构建（需联网）：安装依赖、拉取 vendor 与 privacy 缓存、示例构建、打包 docserver 可执行文件。
+# 在线机构建（需联网）：安装依赖、拉取 theme vendor、打包 docserver 可执行文件。
 # 用法（仓库根）：bash build.sh
 set -euo pipefail
 
@@ -25,11 +25,6 @@ echo "==> Python: $("${PY[@]}" -V)"
 echo "==> 拉取 theme/vendor（mermaid 等）"
 bash "$ROOT/tools/fetch-vendor.sh"
 
-echo "==> 示例构建（写入 privacy 缓存）-> output/smoke-test/"
-rm -rf "$ROOT/output/smoke-test"
-mkdir -p "$ROOT/output"
-"${PY[@]}" src -s "$ROOT/example/source" -o "$ROOT/output/smoke-test" --site-name "构建检查"
-
 echo "==> PyInstaller 打包"
 rm -rf "$ROOT/build" "$ROOT/dist" "$ROOT/release"
 bash "$ROOT/tools/pack.sh" src
@@ -44,5 +39,4 @@ echo ""
 echo "完成。产物："
 echo "  release/docserver-offline-*.tar.gz   # 拷到内网机解压即用"
 echo "  release/bin/docserver-sync           # 本机调试副本"
-echo "  output/smoke-test/                   # 在线构建自检静态站"
-echo "下一步：将 tar.gz 拷到离线机解压，编辑 run.sh 后运行 bash run.sh"
+echo "下一步：将 tar.gz 拷到离线机解压，运行 bash run.sh（默认构建 demo/），再托管 output/site/"

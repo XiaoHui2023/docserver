@@ -3,7 +3,7 @@ chcp 65001 >nul 2>&1
 setlocal EnableExtensions
 cd /d "%~dp0"
 
-echo ==^> 在线机构建（需联网）：依赖、示例构建、PyInstaller
+echo ==^> 在线机构建（需联网）：依赖、vendor、PyInstaller
 echo.
 
 if not exist ".venv\Scripts\python.exe" (
@@ -23,12 +23,6 @@ echo ==^> 拉取 theme\vendor（mermaid 等）
 call "%~dp0tools\fetch-vendor.bat"
 
 echo.
-echo ==^> 示例构建（写入 privacy 缓存）-^> output\smoke-test\
-if exist "output\smoke-test" rmdir /s /q "output\smoke-test"
-mkdir "output" 2>nul
-"%PY%" src -s "example\source" -o "output\smoke-test" --site-name "构建检查"
-
-echo.
 echo ==^> PyInstaller 打包
 if exist "build" rmdir /s /q "build"
 if exist "dist" rmdir /s /q "dist"
@@ -42,6 +36,7 @@ if exist "release\staging" rmdir /s /q "release\staging"
 mkdir "release\staging\release\bin"
 copy /y "dist\docserver-sync.exe" "release\staging\release\bin\docserver-sync.exe" >nul
 copy /y "run.bat" "release\staging\" >nul
+xcopy /e /i /q "demo" "release\staging\demo\" >nul
 xcopy /e /i /q "theme" "release\staging\theme\" >nul
 if exist "cache\plugin\privacy" (
   mkdir "release\staging\cache\plugin" 2>nul
@@ -58,6 +53,5 @@ echo.
 echo 完成。产物:
 echo   release\docserver-offline-win-amd64.zip
 echo   release\bin\docserver-sync.exe
-echo   output\smoke-test\
 echo 下一步: 将 zip 拷到离线机解压后运行 run.bat
 pause

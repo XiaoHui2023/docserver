@@ -20,6 +20,7 @@ else
 fi
 
 cp -f "$ROOT/run.sh" "$STAGE/"
+cp -a "$ROOT/demo" "$STAGE/"
 cp -a "$ROOT/theme" "$STAGE/"
 if [[ -d "$ROOT/cache/plugin/privacy" ]]; then
   mkdir -p "$STAGE/cache/plugin"
@@ -39,4 +40,4 @@ ARCHIVE="$ROOT/release/docserver-offline-${OS_TAG}-${ARCH_TAG}.tar.gz"
 tar -czpf "$ARCHIVE" -C "$STAGE" .
 
 echo "  $ARCHIVE"
-echo "  （内含 release/bin、run.sh、theme/、cache/plugin/privacy/）"
+echo "  （内含 release/bin、run.sh、demo/、theme/；若存在则含 cache/plugin/privacy/）"
