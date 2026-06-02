@@ -10,7 +10,7 @@ SOURCES=(
 OUT=output/site
 CACHE_DIR=
 BASE_URL=/
-SITE_NAME=docserver 示例
+SITE_NAME="docserver 示例"
 SITE_URL=
 LOG=
 # 1=持续监视源与 theme 变更并重建；0=仅构建一次后退出（解压后快速体验）
