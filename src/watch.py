@@ -6,10 +6,17 @@ from pathlib import Path
 
 from build_site import prepare_work, rebuild_docs
 from session_log import format_timestamp, note
-from paths import IGNORE_DIR_NAMES, WATCH_SOURCE_SUFFIXES, resolve_cache_dir
+from paths import IGNORE_DIR_NAMES, IGNORE_FILE_NAMES, WATCH_SOURCE_SUFFIXES, resolve_cache_dir
+from scan import iter_source_files
 from theme_assets import engine_watch_paths
 
 _WATCH_SKIP_DIR_NAMES = IGNORE_DIR_NAMES | frozenset({".pytest_cache", ".mypy_cache"})
+
+
+def _skip_watch_rel(rel: Path) -> bool:
+  if rel.name in IGNORE_FILE_NAMES:
+    return True
+  return any(part in _WATCH_SKIP_DIR_NAMES for part in rel.parts)
 
 
 def _watchable_source_file(path: Path) -> bool:
@@ -42,12 +49,22 @@ def _snapshot(
       continue
     if not root.is_dir():
       continue
+    if filter_source:
+      for path in iter_source_files(root_r):
+        rel = path.relative_to(root_r)
+        if _skip_watch_rel(rel):
+          continue
+        if not _watchable_source_file(path):
+          continue
+        try:
+          snap[path] = path.stat().st_mtime
+        except OSError:
+          continue
+      continue
     for path in root.rglob("*"):
       if not path.is_file():
         continue
       if any(part in _WATCH_SKIP_DIR_NAMES for part in path.parts):
-        continue
-      if filter_source and not _watchable_source_file(path):
         continue
       try:
         snap[path.resolve()] = path.stat().st_mtime
@@ -83,12 +100,18 @@ def _watch_display_path(
   engine_roots: list[Path],
 ) -> str:
   """监视日志用的相对路径（多源时带源目录名前缀）。"""
-  resolved = path.resolve()
   source_set = {s.resolve() for s in sources}
   for source in sources:
     source_r = source.resolve()
     try:
-      rel = resolved.relative_to(source_r).as_posix()
+      rel = path.relative_to(source_r).as_posix()
+      if len(sources) > 1:
+        return f"{source_r.name}/{rel}"
+      return rel
+    except ValueError:
+      pass
+    try:
+      rel = path.resolve().relative_to(source_r).as_posix()
       if len(sources) > 1:
         return f"{source_r.name}/{rel}"
       return rel
@@ -99,12 +122,12 @@ def _watch_display_path(
     if root_r in source_set:
       continue
     try:
-      rel = resolved.relative_to(root_r).as_posix()
+      rel = path.resolve().relative_to(root_r).as_posix()
       prefix = root_r.name if root_r.is_dir() else root_r.stem
       return f"{prefix}/{rel}"
     except ValueError:
       continue
-  return resolved.name
+  return path.resolve().name
 
 
 def _format_changed_files(

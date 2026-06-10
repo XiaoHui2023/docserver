@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
@@ -64,6 +65,38 @@ def _should_skip(rel: Path) -> bool:
   return any(part in IGNORE_DIR_NAMES for part in rel.parts)
 
 
+def iter_source_files(source_root: Path) -> Iterator[Path]:
+  """递归列出源目录下的全部普通文件；进入子目录时跟随目录软链接。
+
+  返回路径保持相对源根的逻辑位置（经软链接挂载时仍用链接名作为路径段）。
+  同一物理目录经不同软链接多次挂载时各自展开；仅在同一条递归链上检测环。
+  """
+  source_root = source_root.resolve()
+
+  def walk(
+    logical_dir: Path, physical_dir: Path, ancestors: frozenset[Path]
+  ) -> Iterator[Path]:
+    physical_r = physical_dir.resolve()
+    if physical_r in ancestors:
+      return
+    next_ancestors = ancestors | {physical_r}
+    try:
+      children = sorted(physical_dir.iterdir(), key=lambda p: p.name.lower())
+    except OSError:
+      return
+    for child in children:
+      logical = logical_dir / child.name
+      try:
+        if child.is_dir():
+          yield from walk(logical, child, next_ancestors)
+        elif child.is_file():
+          yield logical
+      except OSError:
+        continue
+
+  yield from walk(source_root, source_root, frozenset())
+
+
 def _homepage_winner_by_dir(
   files: list[tuple[Path, Path]],
 ) -> dict[Path, Path]:
@@ -96,9 +129,7 @@ def scan_source(source_root: Path) -> list[FileEntry]:
     raise FileNotFoundError(f"源目录不存在: {source_root}")
 
   raw: list[tuple[Path, Path]] = []
-  for path in sorted(source_root.rglob("*")):
-    if not path.is_file():
-      continue
+  for path in sorted(iter_source_files(source_root), key=lambda p: str(p).replace("\\", "/")):
     rel = path.relative_to(source_root)
     if _should_skip(rel):
       continue

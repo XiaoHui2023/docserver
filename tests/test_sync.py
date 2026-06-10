@@ -37,6 +37,18 @@ _main_spec.loader.exec_module(_docserver_main)
 _normalize_argv = _docserver_main._normalize_argv
 
 
+def _can_create_symlink() -> bool:
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / "target.txt"
+        target.write_text("x", encoding="utf-8")
+        link = Path(tmp) / "link.txt"
+        try:
+            link.symlink_to(target)
+        except OSError:
+            return False
+        return link.is_file()
+
+
 class TestDocserver(unittest.TestCase):
     def test_entry_names(self) -> None:
         self.assertTrue(is_entry_md("README.md"))
@@ -197,6 +209,57 @@ class TestDocserver(unittest.TestCase):
             sync_to_work(src, work, verbose=False)
             self.assertTrue((work / "docs" / "index.md").is_file())
             self.assertTrue((work / "docs" / "logo.png").is_file())
+
+    @unittest.skipUnless(_can_create_symlink(), "当前环境无法创建软链接")
+    def test_scan_follows_directory_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            shared = Path(tmp) / "shared"
+            shared.mkdir()
+            (shared / "nested.md").write_text("# Nested\n", encoding="utf-8")
+            src = Path(tmp) / "src"
+            src.mkdir()
+            (src / "index.md").write_text("# Home\n", encoding="utf-8")
+            (src / "linked").symlink_to(shared, target_is_directory=True)
+            entries = scan_source(src)
+            by_dest = {e.dest_rel: e for e in entries}
+            self.assertEqual(by_dest[Path("linked/nested.md")].rel_source, Path("linked/nested.md"))
+            work = Path(tmp) / "work"
+            sync_to_work(src, work, verbose=False)
+            text = (work / "docs" / "linked" / "nested.md").read_text(encoding="utf-8")
+            self.assertIn("title: Nested", text)
+
+    @unittest.skipUnless(_can_create_symlink(), "当前环境无法创建软链接")
+    def test_scan_two_symlinks_to_same_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            shared = Path(tmp) / "shared"
+            shared.mkdir()
+            (shared / "page.md").write_text("# Page\n", encoding="utf-8")
+            src = Path(tmp) / "src"
+            src.mkdir()
+            (src / "index.md").write_text("# Home\n", encoding="utf-8")
+            (src / "alias_a").symlink_to(shared, target_is_directory=True)
+            (src / "alias_b").symlink_to(shared, target_is_directory=True)
+            entries = scan_source(src)
+            rels = {e.rel_source for e in entries if e.is_markdown}
+            self.assertIn(Path("alias_a/page.md"), rels)
+            self.assertIn(Path("alias_b/page.md"), rels)
+
+    @unittest.skipUnless(_can_create_symlink(), "当前环境无法创建软链接")
+    def test_watch_snapshot_through_directory_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            shared = Path(tmp) / "shared"
+            shared.mkdir()
+            linked_file = shared / "watch.md"
+            linked_file.write_text("# x", encoding="utf-8")
+            src = Path(tmp) / "src"
+            src.mkdir()
+            (src / "index.md").write_text("# Home\n", encoding="utf-8")
+            (src / "linked").symlink_to(shared, target_is_directory=True)
+            logical = src / "linked" / "watch.md"
+            src_r = src.resolve()
+            snap = _snapshot([src_r], source_roots={src_r})
+            self.assertIn(logical, snap)
+            self.assertNotIn(linked_file.resolve(), snap)
 
     def test_log_file_path_layout(self) -> None:
         from datetime import datetime
