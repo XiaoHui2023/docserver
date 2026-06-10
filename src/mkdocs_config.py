@@ -10,6 +10,7 @@ def _extra_javascript_yaml_lines(work_root: Path) -> str:
         "javascripts/docserver-boot.js",
         "javascripts/theme-switcher.js",
         "javascripts/path-index.js",
+        "javascripts/nav-active-branch.js",
         "javascripts/sidebar-scroll-persist.js",
     ]
     if (work_root / "docs" / "javascripts" / "mermaid.min.js").is_file():
@@ -88,7 +89,6 @@ theme:
     - navigation.instant.prefetch
     - navigation.instant.progress
     - navigation.sections
-    - navigation.expand
     - navigation.top
     - navigation.indexes
     - navigation.path
