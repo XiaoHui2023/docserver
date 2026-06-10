@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 组装离线运行目录并打成压缩包（由 pack.sh 调用）。
+# 组装离线运行目录并打成压缩包（由 tools/pack.sh 调用）。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

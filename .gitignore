@@ -39,7 +39,7 @@ site/
 .cache/
 node_modules/
 
-# --- 打包（pack.sh / PyInstaller）---
+# --- 打包（tools/pack.sh / PyInstaller）---
 /build/
 /offline-packages/
 

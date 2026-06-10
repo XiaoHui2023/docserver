@@ -1,7 +1,11 @@
 @echo off
 chcp 65001 >nul 2>&1
 setlocal EnableExtensions
-cd /d "%~dp0"
+rem 在线机打包（需联网）：依赖、vendor、PyInstaller、离线压缩包。
+rem 用法（仓库根）：tools\pack.bat
+rem 产物：dist\docserver-sync.exe、dist\docserver-offline-win-amd64.zip（含 run.bat、demo\、theme\）
+rem Spec：仓库根 docserver-cli.spec → docserver-sync（Windows 无 staticx）
+cd /d "%~dp0\.."
 
 echo ==^> 在线机打包（需联网）：依赖、vendor、PyInstaller、离线压缩包
 echo.
@@ -11,7 +15,7 @@ if not exist ".venv\Scripts\python.exe" (
   py -3 -m venv .venv 2>nul || python -m venv .venv
 )
 
-set PY=%~dp0.venv\Scripts\python.exe
+set "PY=%CD%\.venv\Scripts\python.exe"
 "%PY%" -V
 
 "%PY%" -m pip install -q -U pip setuptools wheel
@@ -20,18 +24,18 @@ set PY=%~dp0.venv\Scripts\python.exe
 
 echo.
 echo ==^> 拉取 theme\vendor（mermaid 等）
-call "%~dp0tools\fetch-vendor.bat"
+call "%~dp0fetch-vendor.bat"
 
 echo.
 echo ==^> PyInstaller 打包
 if exist "build" rmdir /s /q "build"
 if exist "dist" rmdir /s /q "dist"
 
-"%PY%" -m PyInstaller --clean --noconfirm "%~dp0docserver-cli.spec"
+"%PY%" -m PyInstaller --clean --noconfirm "%CD%\docserver-cli.spec"
 
 echo.
 echo ==^> 组装离线压缩包 -^> dist\docserver-offline-win-amd64.zip
-call "%~dp0tools\stage-offline.bat"
+call "%~dp0stage-offline.bat"
 
 echo.
 echo 完成。产物（均在 dist\）:

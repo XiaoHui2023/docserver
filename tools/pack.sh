@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 # 在线机打包（需联网）：依赖、theme vendor、PyInstaller、离线压缩包。
-# 用法（仓库根）：./pack.sh  或  bash pack.sh
-# Linux staticx 另需 patchelf（如 apt install patchelf）。
+#
+# 用法（仓库根）：
+#   ./tools/pack.sh
+#   bash tools/pack.sh
+# 产物（均在 dist/）：
+#   dist/docserver-sync              # 本机可直接运行（Linux 经 staticx）
+#   dist/docserver-sync-pyi          # Linux：staticx 前保留的 PyInstaller onefile
+#   dist/docserver-offline-*.tar.gz  # 拷到内网机解压即用（含 run.sh、demo/、theme/）
+# Linux staticx 另需系统 patchelf（如 apt install patchelf）；macOS 跳过 staticx。
+# Spec：仓库根 docserver-cli.spec → docserver-sync。
+# 兼容：单文件 ABI 取决于构建机 glibc；旧 Linux 须在目标机实测 staticx 产物。
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 DIST_NAME="docserver-sync"

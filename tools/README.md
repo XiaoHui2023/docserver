@@ -1,8 +1,8 @@
 # 打包辅助脚本
 
-在线打包入口在仓库根：**`pack.sh`** / **`pack.bat`**（见 [PACKAGING.md](../PACKAGING.md)）。
+在线打包入口：**`tools/pack.sh`** / **`tools/pack.bat`**（用法与产物见各脚本文件头注释；staticx 等细节见 [PACKAGING.md](../PACKAGING.md)）。
 
-本目录脚本由 `pack` 调用，一般无需单独执行：
+本目录其余脚本由 `pack` 调用，一般无需单独执行：
 
 | 脚本 | 作用 |
 | --- | --- |

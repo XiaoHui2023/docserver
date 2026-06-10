@@ -34,7 +34,7 @@ if not exist "%ROOT%.venv\Scripts\python.exe" call "%ROOT%update.bat"
 set "PY=%ROOT%.venv\Scripts\python.exe"
 if not exist "%PY%" (
   echo 未找到 dist\docserver-sync.exe，且无法创建 .venv。
-  echo 开发预览请用 example.bat，或先执行 pack.bat 生成离线包。
+  echo 开发预览请用 example.bat，或先执行 tools\pack.bat 生成离线包。
   exit /b 1
 )
 
