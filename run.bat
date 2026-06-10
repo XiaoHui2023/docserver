@@ -18,12 +18,25 @@ set "LOG="
 REM 1=持续监视并重建；0=仅构建一次后退出
 set "WATCH=0"
 
-set "SYNC=%ROOT%release\bin\docserver-sync.exe"
 set "EXTRA="
 if defined SITE_URL set "EXTRA=--site-url %SITE_URL%"
 if defined CACHE_DIR set "EXTRA=%EXTRA% --cache-dir "%CACHE_DIR%""
 if defined LOG set "EXTRA=%EXTRA% --log "%LOG%""
 if "%WATCH%"=="1" set "EXTRA=%EXTRA% --watch"
 
-"%SYNC%" !SRC_ARGS! -o "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" %EXTRA%
+set "SYNC=%ROOT%release\bin\docserver-sync.exe"
+if exist "%SYNC%" (
+  "%SYNC%" !SRC_ARGS! -o "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" %EXTRA%
+  exit /b !errorlevel!
+)
+
+if not exist "%ROOT%.venv\Scripts\python.exe" call "%ROOT%update.bat"
+set "PY=%ROOT%.venv\Scripts\python.exe"
+if not exist "%PY%" (
+  echo 未找到 release\bin\docserver-sync.exe，且无法创建 .venv。
+  echo 开发预览请用 example.bat，或先执行 build.bat 生成离线包。
+  exit /b 1
+)
+
+"%PY%" "%ROOT%src" !SRC_ARGS! -o "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" %EXTRA%
 exit /b %errorlevel%

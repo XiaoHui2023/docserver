@@ -22,7 +22,7 @@ else
 fi
 
 echo "[1/4] Initial build (example/source -> dist)..."
-rm -rf "$ROOT/dist"
+rm -rf "$ROOT/dist.staging" "$ROOT/dist.old" "$ROOT/dist"
 "$PY" src -s "$ROOT/example/source" -o "$ROOT/dist" --site-name "$SITE_NAME"
 
 echo "[2/4] Watch example/source + theme/ + src/ in background..."
