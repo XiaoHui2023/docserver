@@ -47,8 +47,8 @@ docserver 离线运行包
   构建缓存：默认 .docserver-cache/（含中间 docs/、mkdocs.yml）；
   OUT 仅为可部署静态站。
 
-  构建时会在 OUT 旁生成 OUT.staging/；成功后再替换 OUT，
-  构建过程中 OUT 内文件（含 search/）保持不变。
+  构建时 MkDocs 写入缓存内 site-staging/；成功后再替换 OUT，
+  构建过程中 OUT 内文件（含 search/）保持不变。除 OUT 与缓存外不生成其它目录。
 
 四、BASE_URL 与 SITE_URL（子路径部署）
 

@@ -77,8 +77,8 @@ def repo_root() -> Path:
 
 
 DEFAULT_CACHE_DIR_NAME = ".docserver-cache"
-STAGING_DIR_SUFFIX = ".staging"
-PUBLISH_BACKUP_SUFFIX = ".old"
+SITE_STAGING_DIR_NAME = "site-staging"
+SITE_OUT_BACKUP_DIR_NAME = "site-out-backup"
 
 
 def resolve_cache_dir(cache_dir: Path | None) -> Path:
@@ -96,10 +96,14 @@ def _is_subpath(child: Path, parent: Path) -> bool:
     return False
 
 
-def staging_dir_for(out_root: Path) -> Path:
-  """MkDocs 写入的临时站点目录；构建成功后再一次性替换 out_root。"""
-  resolved = out_root.resolve()
-  return resolved.with_name(resolved.name + STAGING_DIR_SUFFIX)
+def staging_dir_for(cache_root: Path) -> Path:
+  """MkDocs 写入的临时站点目录（位于构建缓存内）；构建成功后再一次性替换 out_root。"""
+  return cache_root.resolve() / SITE_STAGING_DIR_NAME
+
+
+def publish_backup_dir(cache_root: Path) -> Path:
+  """发布替换时暂存旧 out 的目录（位于构建缓存内）。"""
+  return cache_root.resolve() / SITE_OUT_BACKUP_DIR_NAME
 
 
 def validate_out_and_cache(out_root: Path, cache_root: Path) -> None:
@@ -113,15 +117,13 @@ def validate_out_and_cache(out_root: Path, cache_root: Path) -> None:
     raise ValueError("输出目录不能位于构建缓存目录内")
 
 
-def validate_staging_dir(out_root: Path, staging_root: Path) -> None:
-  out_r = out_root.resolve()
+def validate_cache_staging(cache_root: Path, staging_root: Path) -> None:
+  cache_r = cache_root.resolve()
   staging_r = staging_root.resolve()
-  if out_r == staging_r:
-    raise ValueError("输出目录与构建暂存目录不能相同")
-  if _is_subpath(staging_r, out_r):
-    raise ValueError("构建暂存目录不能位于输出目录内")
-  if _is_subpath(out_r, staging_r):
-    raise ValueError("输出目录不能位于构建暂存目录内")
+  if staging_r == cache_r:
+    raise ValueError("构建暂存目录不能与构建缓存根目录相同")
+  if not _is_subpath(staging_r, cache_r):
+    raise ValueError("构建暂存目录须位于构建缓存目录内")
 
 
 def docs_dir(work_root: Path) -> Path:

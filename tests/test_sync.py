@@ -16,10 +16,11 @@ from entries import dest_rel_for_source, entry_home_priority, is_entry_md  # noq
 from paths import (  # noqa: E402
     DEFAULT_CACHE_DIR_NAME,
     NAV_META_NAME,
+    publish_backup_dir,
     resolve_cache_dir,
     staging_dir_for,
+    validate_cache_staging,
     validate_out_and_cache,
-    validate_staging_dir,
 )
 from publish import publish_staging_to_out  # noqa: E402
 from pages import _format_pages_yaml, write_pages_files  # noqa: E402
@@ -493,8 +494,10 @@ class TestDocserver(unittest.TestCase):
 
     def test_publish_staging_to_out(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp) / "cache"
+            cache.mkdir()
             out = Path(tmp) / "site"
-            staging = staging_dir_for(out)
+            staging = staging_dir_for(cache)
             out.mkdir()
             (out / "old.txt").write_text("old", encoding="utf-8")
             staging.mkdir()
@@ -503,21 +506,35 @@ class TestDocserver(unittest.TestCase):
             search_dir.mkdir()
             (search_dir / "search_index.json").write_text("{}", encoding="utf-8")
 
-            publish_staging_to_out(staging, out)
+            publish_staging_to_out(staging, out, cache)
 
             self.assertFalse(staging.exists())
             self.assertTrue((out / "search" / "search_index.json").is_file())
             self.assertFalse((out / "old.txt").exists())
+            self.assertFalse(publish_backup_dir(cache).exists())
 
-    def test_validate_staging_dir(self) -> None:
+    def test_staging_dir_inside_cache_not_beside_out(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            out = Path(tmp) / "site"
-            staging = staging_dir_for(out)
-            out.mkdir()
+            cache = (Path(tmp) / ".docserver-cache").resolve()
+            out = (Path(tmp) / "dist").resolve()
+            staging = staging_dir_for(cache)
+            self.assertEqual(staging, (cache / "site-staging").resolve())
+            self.assertNotEqual(staging.parent, out.parent)
+            staging.relative_to(cache)
+
+    def test_validate_cache_staging(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp) / "cache"
+            cache.mkdir()
+            staging = staging_dir_for(cache)
             staging.mkdir()
-            validate_staging_dir(out, staging)
+            validate_cache_staging(cache, staging)
             with self.assertRaises(ValueError):
-                validate_staging_dir(out, out)
+                validate_cache_staging(cache, cache)
+            outside = Path(tmp) / "other"
+            outside.mkdir()
+            with self.assertRaises(ValueError):
+                validate_cache_staging(cache, outside)
 
     def test_normalize_argv_keeps_source_named_src(self) -> None:
         argv = [

@@ -8,8 +8,6 @@ set PY=%~dp0.venv\Scripts\python.exe
 set SITE_NAME=Docserver Example
 
 echo [1/4] Initial build (example\source -^> dist)...
-if exist "dist.staging" rmdir /s /q "dist.staging"
-if exist "dist.old" rmdir /s /q "dist.old"
 if exist "dist" rmdir /s /q "dist"
 "%PY%" src -s example\source -o dist --site-name "%SITE_NAME%"
 if errorlevel 1 (

@@ -11,8 +11,8 @@ from paths import (
   docs_dir,
   resolve_cache_dir,
   staging_dir_for,
+  validate_cache_staging,
   validate_out_and_cache,
-  validate_staging_dir,
 )
 from publish import publish_staging_to_out
 from session_log import format_timestamp, note
@@ -96,9 +96,9 @@ def prepare_work(
   out_root = out_root.resolve()
 
   work = resolve_cache_dir(cache_dir)
-  staging = staging_dir_for(out_root)
+  staging = staging_dir_for(work)
   validate_out_and_cache(out_root, work)
-  validate_staging_dir(out_root, staging)
+  validate_cache_staging(work, staging)
   work.mkdir(parents=True, exist_ok=True)
 
   entries = sync_to_work(roots, work, clean=True, verbose=verbose)
@@ -130,10 +130,11 @@ def _build_to_staging_and_publish(
   *,
   verbose: bool = False,
 ) -> None:
-  staging = staging_dir_for(out_root)
-  validate_staging_dir(out_root, staging)
+  cache_root = config_path.parent.resolve()
+  staging = staging_dir_for(cache_root)
+  validate_cache_staging(cache_root, staging)
   _run_mkdocs(config_path, staging, verbose=verbose, clean_site=True)
-  publish_staging_to_out(staging, out_root)
+  publish_staging_to_out(staging, out_root, cache_root)
 
 
 def build_docs(
