@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import time
+from collections.abc import Callable
 from pathlib import Path
+from typing import TypeVar
 
 import yaml
 
@@ -14,6 +17,46 @@ from scan import FileEntry, scan_sources
 
 # 由 install_theme_assets 写入，勿当作源目录镜像的一部分删除
 _RESERVED_DOC_TOP_DIRS = frozenset({"stylesheets", "javascripts"})
+
+_SYNC_IO_MAX_ATTEMPTS = 8
+_SYNC_IO_BASE_DELAY_SEC = 0.05
+
+_T = TypeVar("_T")
+
+
+def _with_sync_io_retry(action: Callable[[], _T], *, path: Path) -> _T:
+  """编辑器保存时源文件可能短暂不可读，短暂重试后再失败。"""
+  last_exc: OSError | None = None
+  for attempt in range(_SYNC_IO_MAX_ATTEMPTS):
+    try:
+      return action()
+    except FileNotFoundError as exc:
+      last_exc = exc
+    except PermissionError as exc:
+      last_exc = exc
+    except OSError as exc:
+      if getattr(exc, "errno", None) not in (2, 13):
+        raise
+      last_exc = exc
+    if attempt + 1 < _SYNC_IO_MAX_ATTEMPTS:
+      time.sleep(_SYNC_IO_BASE_DELAY_SEC * (attempt + 1))
+  if last_exc is not None:
+    raise last_exc
+  raise FileNotFoundError(path)
+
+
+def _read_source_text(path: Path) -> str:
+  return _with_sync_io_retry(
+    lambda: path.read_text(encoding="utf-8"),
+    path=path,
+  )
+
+
+def _copy_source_file(source: Path, dest: Path) -> None:
+  def _do_copy() -> None:
+    shutil.copy2(source, dest)
+
+  _with_sync_io_retry(_do_copy, path=source)
 
 _YAML_FRONT_MATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---", re.DOTALL)
 
@@ -176,10 +219,10 @@ def sync_to_work(
     dest = docs / entry.dest_rel
     _ensure_parent_dirs(dest, docs)
     if entry.is_markdown and entry.title:
-      raw = entry.source.read_text(encoding="utf-8")
+      raw = _read_source_text(entry.source)
       dest.write_text(_merge_nav_title(raw, entry.title), encoding="utf-8")
     else:
-      shutil.copy2(entry.source, dest)
+      _copy_source_file(entry.source, dest)
     if verbose:
       prefix = f"[{entry.source_root.name}] " if len(roots) > 1 else ""
       print(f"  {prefix}{entry.rel_source} -> docs/{entry.dest_rel}")

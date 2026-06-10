@@ -180,15 +180,6 @@ def _run_watch(args: argparse.Namespace) -> int:
         except KeyboardInterrupt:
             print("\n已停止。")
             return 0
-        except (FileNotFoundError, ValueError) as exc:
-            print(f"错误: {exc}", file=sys.stderr)
-            return 1
-        except subprocess.CalledProcessError as exc:
-            print(f"构建失败: MkDocs 退出码 {exc.returncode}", file=sys.stderr)
-            return 1
-        except Exception as exc:
-            print(f"构建失败: {exc}", file=sys.stderr)
-            return 1
     return 0
 
 

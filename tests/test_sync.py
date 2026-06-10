@@ -26,8 +26,13 @@ from publish import publish_staging_to_out  # noqa: E402
 from pages import _format_pages_yaml, write_pages_files  # noqa: E402
 from session_log import log_file_path  # noqa: E402
 from scan import scan_source, scan_sources  # noqa: E402
-from staging import sync_to_work  # noqa: E402
-from watch import _format_changed_files, _snapshot, _watchable_source_file  # noqa: E402
+from staging import _with_sync_io_retry, sync_to_work  # noqa: E402
+from watch import (  # noqa: E402
+    _format_changed_files,
+    _rebuild_until_stable,
+    _snapshot,
+    _watchable_source_file,
+)
 
 import importlib.util
 
@@ -562,6 +567,90 @@ class TestDocserver(unittest.TestCase):
         self.assertNotIn("src", out)
         self.assertIn("-s", out)
         self.assertIn("example/source", out)
+
+    def test_sync_io_retry_transient_missing(self) -> None:
+        path = Path("missing-then-here.txt")
+        calls = 0
+
+        def flaky() -> str:
+            nonlocal calls
+            calls += 1
+            if calls < 3:
+                raise FileNotFoundError(2, "No such file or directory", str(path))
+            return "ok"
+
+        self.assertEqual(_with_sync_io_retry(flaky, path=path), "ok")
+        self.assertEqual(calls, 3)
+
+    @patch("watch.time.sleep")
+    def test_rebuild_until_stable_retries_on_unexpected_error(self, mock_sleep) -> None:
+        attempts = 0
+        stable = {Path("/a"): 1.0}
+
+        def run_rebuild() -> None:
+            nonlocal attempts
+            attempts += 1
+            if attempts < 2:
+                raise RuntimeError("mkdocs internal error")
+
+        with patch("watch._snapshot", return_value=stable):
+            result = _rebuild_until_stable(
+                watch_roots=[],
+                source_set=set(),
+                sources=[],
+                run_rebuild=run_rebuild,
+                fail_pause=0.5,
+            )
+        self.assertEqual(attempts, 2)
+        self.assertEqual(result, stable)
+        mock_sleep.assert_called_once_with(0.5)
+
+    @patch("watch.time.sleep")
+    def test_rebuild_until_stable_retries_then_succeeds(self, mock_sleep) -> None:
+        attempts = 0
+        stable = {Path("/a"): 1.0}
+
+        def run_rebuild() -> None:
+            nonlocal attempts
+            attempts += 1
+            if attempts < 2:
+                raise FileNotFoundError("transient")
+
+        with patch("watch._snapshot", return_value=stable):
+            result = _rebuild_until_stable(
+                watch_roots=[],
+                source_set=set(),
+                sources=[],
+                run_rebuild=run_rebuild,
+                fail_pause=0.5,
+            )
+        self.assertEqual(attempts, 2)
+        self.assertEqual(result, stable)
+        mock_sleep.assert_called_once_with(0.5)
+
+    @patch("watch.time.sleep")
+    def test_rebuild_until_stable_reruns_when_changed_during_build(self, mock_sleep) -> None:
+        path = Path("/a")
+        snap_before = {path: 1.0}
+        snap_after = {path: 2.0}
+        snapshots = [snap_before, snap_after, snap_after, snap_after]
+        builds = 0
+
+        def run_rebuild() -> None:
+            nonlocal builds
+            builds += 1
+
+        with patch("watch._snapshot", side_effect=snapshots):
+            result = _rebuild_until_stable(
+                watch_roots=[path],
+                source_set=set(),
+                sources=[],
+                run_rebuild=run_rebuild,
+                fail_pause=0.5,
+            )
+        self.assertEqual(builds, 2)
+        self.assertEqual(result, snap_after)
+        mock_sleep.assert_not_called()
 
     @patch("build_site._build_to_staging_and_publish")
     def test_build_invokes_mkdocs(self, mock_publish) -> None:

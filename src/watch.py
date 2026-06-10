@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from build_site import prepare_work, rebuild_docs
@@ -130,6 +130,31 @@ def _watch_display_path(
   return path.resolve().name
 
 
+def _rebuild_until_stable(
+  *,
+  watch_roots: list[Path],
+  source_set: set[Path],
+  sources: list[Path],
+  run_rebuild: Callable[[], None],
+  fail_pause: float,
+) -> dict[Path, float]:
+  """失败时等待重试；成功后再检查构建期间是否又有变更。"""
+  while True:
+    before = _snapshot(watch_roots, source_roots=source_set)
+    try:
+      run_rebuild()
+    except Exception as exc:
+      note(f"构建失败，{fail_pause:g}s 后重试: {exc}")
+      time.sleep(fail_pause)
+      continue
+    after = _snapshot(watch_roots, source_roots=source_set)
+    if not _diff_snapshots(before, after):
+      return after
+    note("构建期间仍有变更，继续重建…")
+    for line in _format_changed_files(before, after, sources, watch_roots):
+      note(line)
+
+
 def _format_changed_files(
   before: dict[Path, float],
   after: dict[Path, float],
@@ -189,7 +214,7 @@ def watch_and_build(
   note(f"构建缓存: {resolve_cache_dir(cache_dir)}")
   note(f"子路径: {base_url!r}  监视间隔: {interval} 秒（Ctrl+C 结束）")
 
-  def _rebuild() -> None:
+  def _run_rebuild() -> None:
     note(f"构建开始: {format_timestamp()}")
     config_path, _ = prepare_work(
       roots,
@@ -203,16 +228,31 @@ def watch_and_build(
     rebuild_docs(config_path, out_root, verbose=verbose)
     note(f"构建结束: {format_timestamp()}")
 
+  fail_pause = max(0.5, min(interval, 2.0))
+
+  def _drain_rebuilds() -> dict[Path, float]:
+    return _rebuild_until_stable(
+      watch_roots=watch_roots,
+      source_set=source_set,
+      sources=roots,
+      run_rebuild=_run_rebuild,
+      fail_pause=fail_pause,
+    )
+
   if not skip_initial:
-    _rebuild()
-  last = _snapshot(watch_roots, source_roots=source_set)
+    last = _drain_rebuilds()
+  else:
+    last = _snapshot(watch_roots, source_roots=source_set)
   while True:
-    time.sleep(interval)
-    current = _snapshot(watch_roots, source_roots=source_set)
-    changed_lines = _format_changed_files(last, current, roots, watch_roots)
-    if changed_lines:
-      note("检测到变更，正在重新构建…")
-      for line in changed_lines:
-        note(line)
-      _rebuild()
-      last = current
+    try:
+      time.sleep(interval)
+      current = _snapshot(watch_roots, source_roots=source_set)
+      changed_lines = _format_changed_files(last, current, roots, watch_roots)
+      if changed_lines:
+        note("检测到变更，正在重新构建…")
+        for line in changed_lines:
+          note(line)
+        last = _drain_rebuilds()
+    except Exception as exc:
+      note(f"监视异常，{fail_pause:g}s 后继续: {exc}")
+      time.sleep(fail_pause)
