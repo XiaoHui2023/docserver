@@ -1,27 +1,27 @@
 # 打包发布
 
-在可访问 PyPI 的机器上于仓库根执行 `build.sh` 或 `build.bat`；除 PyInstaller 可执行文件外，会组装离线压缩包：**`build.sh` → `release/docserver-offline-*.tar.gz`**（含 `run.sh`）；**`build.bat` → `docserver-offline-win-amd64.zip`**（含 `run.bat`）。公共内容：`release/bin/docserver-sync`、`run.sh` 或 `run.bat`、`theme/`。Linux 上 PyInstaller onefile 之后可选 staticx。
+在可访问 PyPI 的机器上于仓库根执行 **`pack.sh`** 或 **`pack.bat`**：安装依赖、拉取 theme vendor、PyInstaller 打可执行文件，并组装离线压缩包。产物均在 **`dist/`**。
+
+| 脚本 | 离线压缩包 | 启动器 |
+| --- | --- | --- |
+| `pack.sh` | `dist/docserver-offline-*.tar.gz` | `run.sh` |
+| `pack.bat` | `dist/docserver-offline-win-amd64.zip` | `run.bat` |
+
+压缩包内含 `dist/docserver-sync`、`theme/`（含 `mermaid.min.js`）、`demo/` 示例源。本机调试可直接运行 `dist/docserver-sync`（或 `.exe`）。
+
+```bash
+./pack.sh
+```
+
+```bat
+pack.bat
+```
 
 打包产物内含 MkDocs Material 运行依赖，体积较大；若目标环境可联网，更推荐在目标机使用 `pip install -e .` 与 `python src`。
 
-## 一键打包
-
-```bash
-./tools/pack.sh
-```
-
-脚本会创建或复用根目录 `.venv`，执行 `pip install -e .` 安装项目，再调用 PyInstaller。参数与单入口说明见 [tools/README.md](tools/README.md)。
-
-| 命令 | 产物（`dist/`） |
-| --- | --- |
-| `./tools/pack.sh` 或 `all` | `docserver-sync`（Linux 为 staticx 后） |
-| `./tools/pack.sh src` | 同上 |
-
-Windows 产物为 `docserver-sync.exe`，无 staticx 步骤。
-
 ## Linux staticx
 
-在 Linux 上，`tools/pack.sh` 对 ELF 产物再运行 **staticx**，需要系统已安装 **patchelf**（例如 `sudo apt install patchelf`）。**macOS** 当前跳过 staticx，仅保留 PyInstaller onefile。
+在 Linux 上，`pack.sh` 对 ELF 产物再运行 **staticx**，需要系统已安装 **patchelf**（例如 `sudo apt install patchelf`）。**macOS** 当前跳过 staticx，仅保留 PyInstaller onefile。
 
 staticx 之前会把 PyInstaller onefile **复制**为 `dist/docserver-sync-pyi` 并保留；最终发布用的 `dist/docserver-sync` 为 staticx 产物。若打包在 staticx 阶段失败，可先对 `-pyi` 文件单独运行、对照 `build/` 与 PyInstaller 日志，区分是 onefile 还是 staticx 的问题。
 
@@ -33,7 +33,7 @@ PyInstaller 规格放在仓库根目录：
 
 - `docserver-cli.spec` → `docserver-sync`（内含 MkDocs Material 主题与插件的 `collect_all` / `copy_metadata`，避免 onefile 中 `theme: material` 不可用）
 
-修改依赖或 `mkdocs.yml` 插件列表后须重新执行 `./tools/pack.sh`。
+修改依赖或 `mkdocs.yml` 插件列表后须重新执行 `pack.sh` / `pack.bat`。
 
 ## 兼容边界
 

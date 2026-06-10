@@ -16,7 +16,7 @@ LOG=
 # 1=持续监视源与 theme 变更并重建；0=仅构建一次后退出（解压后快速体验）
 WATCH=0
 
-SYNC="$ROOT/release/bin/docserver-sync"
+SYNC="$ROOT/dist/docserver-sync"
 ARGS=(
   -s "${SOURCES[@]}"
   -o "$OUT"

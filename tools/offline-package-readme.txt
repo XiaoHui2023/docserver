@@ -21,7 +21,7 @@ docserver 离线运行包
   LOG         日志目录；留空不写日志文件
   WATCH       0=只构建一次；1=持续监视并重建（等同 --watch，启动时先构建一次）
 
-二、命令行参数（直接调用 release/bin/docserver-sync 时）
+二、命令行参数（直接调用 dist/docserver-sync 时）
 
   必填：-s / --source（可多次）  -o / --out
 
@@ -37,12 +37,12 @@ docserver 离线运行包
     -v / --verbose      详细输出
 
   示例（包根目录）：
-    ./release/bin/docserver-sync -s demo -o output/site
-    ./release/bin/docserver-sync -s demo -o output/site --watch
+    ./dist/docserver-sync -s demo -o output/site
+    ./dist/docserver-sync -s demo -o output/site --watch
 
 三、构建说明
 
-  可执行文件：release/bin/docserver-sync（Windows 为 .exe）
+  可执行文件：dist/docserver-sync（Windows 为 .exe）
 
   构建缓存：默认 .docserver-cache/（含中间 docs/、mkdocs.yml）；
   OUT 仅为可部署静态站。

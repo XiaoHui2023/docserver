@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller 规格：docserver-sync 主入口 onefile。
 
-构建：仓库根执行 bash tools/pack.sh（Linux 上再 staticx）。
+构建：仓库根执行 ./pack.sh（Linux 上再 staticx）。
 """
 from __future__ import annotations
 
