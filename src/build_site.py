@@ -94,7 +94,6 @@ def prepare_work(
   """同步源目录到构建缓存并生成 mkdocs.yml，返回 (config_path, 页面数)。"""
   roots = _source_roots(source)
   out_root = out_root.resolve()
-  out_root.mkdir(parents=True, exist_ok=True)
 
   work = resolve_cache_dir(cache_dir)
   staging = staging_dir_for(out_root)
