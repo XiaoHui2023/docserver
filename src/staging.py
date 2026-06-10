@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from pathlib import Path
+
+import yaml
 
 from paths import IGNORE_FILE_NAMES, MANIFEST_NAME, NAV_META_NAME, docs_dir
 from collections.abc import Sequence
@@ -11,6 +14,40 @@ from scan import FileEntry, scan_sources
 
 # 由 install_theme_assets 写入，勿当作源目录镜像的一部分删除
 _RESERVED_DOC_TOP_DIRS = frozenset({"stylesheets", "javascripts"})
+
+_YAML_FRONT_MATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---", re.DOTALL)
+
+
+def _split_front_matter(text: str) -> tuple[dict[str, object], str]:
+  m = _YAML_FRONT_MATTER_RE.match(text)
+  if not m:
+    return {}, text
+  try:
+    parsed = yaml.safe_load(m.group(1))
+  except yaml.YAMLError:
+    return {}, text
+  if not isinstance(parsed, dict):
+    return {}, text
+  body = text[m.end() :]
+  if body.startswith("\n"):
+    body = body[1:]
+  return parsed, body
+
+
+def _merge_nav_title(text: str, title: str) -> str:
+  """写入 MkDocs / awesome-pages 用的 title，避免全小写文件名被 capitalize。"""
+  meta, body = _split_front_matter(text)
+  if meta.get("title") is not None:
+    return text
+  meta = dict(meta)
+  meta["title"] = title
+  dumped = yaml.safe_dump(
+    meta,
+    allow_unicode=True,
+    default_flow_style=False,
+    sort_keys=False,
+  ).rstrip()
+  return f"---\n{dumped}\n---\n\n{body}"
 
 
 def _remove_junk_doc_files(docs: Path) -> None:
@@ -138,7 +175,11 @@ def sync_to_work(
   for entry in entries:
     dest = docs / entry.dest_rel
     _ensure_parent_dirs(dest, docs)
-    shutil.copy2(entry.source, dest)
+    if entry.is_markdown and entry.title:
+      raw = entry.source.read_text(encoding="utf-8")
+      dest.write_text(_merge_nav_title(raw, entry.title), encoding="utf-8")
+    else:
+      shutil.copy2(entry.source, dest)
     if verbose:
       prefix = f"[{entry.source_root.name}] " if len(roots) > 1 else ""
       print(f"  {prefix}{entry.rel_source} -> docs/{entry.dest_rel}")

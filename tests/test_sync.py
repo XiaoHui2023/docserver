@@ -149,6 +149,44 @@ class TestDocserver(unittest.TestCase):
             sync_to_work(src, work, clean=False, verbose=False)
             self.assertFalse((work / "docs" / "extra.md").exists())
 
+    def test_sync_injects_nav_title_without_capitalize(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "src"
+            work = Path(tmp) / "work"
+            src.mkdir()
+            (src / "index.md").write_text("# Home\n", encoding="utf-8")
+            (src / "api.md").write_text("正文无标题\n", encoding="utf-8")
+            sync_to_work(src, work, verbose=False)
+            api = (work / "docs" / "api.md").read_text(encoding="utf-8")
+            self.assertIn("title: api", api)
+            self.assertNotIn("title: Api", api)
+
+    def test_sync_respects_existing_front_matter_title(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "src"
+            work = Path(tmp) / "work"
+            src.mkdir()
+            (src / "index.md").write_text("# Home\n", encoding="utf-8")
+            (src / "api.md").write_text(
+                "---\ntitle: my API\n---\n\n# other\n",
+                encoding="utf-8",
+            )
+            sync_to_work(src, work, verbose=False)
+            api = (work / "docs" / "api.md").read_text(encoding="utf-8")
+            self.assertIn("title: my API", api)
+            self.assertEqual(api.count("title:"), 1)
+
+    def test_sync_injects_title_from_markdown_h1(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "src"
+            work = Path(tmp) / "work"
+            src.mkdir()
+            (src / "index.md").write_text("# Home\n", encoding="utf-8")
+            (src / "x.md").write_text("# lowercase heading\n", encoding="utf-8")
+            sync_to_work(src, work, verbose=False)
+            text = (work / "docs" / "x.md").read_text(encoding="utf-8")
+            self.assertIn("title: lowercase heading", text)
+
     def test_static_asset_copied(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "src"
