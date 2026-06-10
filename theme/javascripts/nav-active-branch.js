@@ -32,18 +32,14 @@
   function expandAncestorsOf(link) {
     var item = link.closest(".md-nav__item");
     while (item) {
-      var parentItem = item.parentElement
-        ? item.parentElement.closest(".md-nav__item")
-        : null;
-      if (!parentItem) {
-        break;
-      }
-      var toggle = parentItem.querySelector(":scope > input.md-nav__toggle");
+      var toggle = item.querySelector(":scope > input.md-nav__toggle");
       if (isNavBranchToggle(toggle)) {
         toggle.checked = true;
         toggle.classList.remove("md-toggle--indeterminate");
       }
-      item = parentItem;
+      item = item.parentElement
+        ? item.parentElement.closest(".md-nav__item")
+        : null;
     }
   }
 
