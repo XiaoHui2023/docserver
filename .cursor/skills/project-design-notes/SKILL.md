@@ -61,16 +61,41 @@ src/            ──生成──►  .docserver-cache/mkdocs.yml
 2. 若动用户可见行为：更新 `example/source/` 内相关说明（如 `showcase/navigation.md`）。
 3. 回合结束前提醒：重开 example 或等 watch 打「构建结束」，浏览器 **Ctrl+F5**。
 4. **不要**在 `example/` 下复制一份 `theme/`（避免双份漂移）。
-5. **instant 换页**：`document$` 回调里**禁止**反复 `insertBefore` 顶栏/乱改侧栏 DOM，否则退化成整页刷新（终端会再次请求 `bundle.js`）；**禁止**在 `document$` 里 `setAttribute`/`clearMaterialColors` 改 `body` 配色（会触发搜索栏重绘闪烁）。顶栏/搜索样式只跟 `html[data-docserver-scheme-guard]`（见 `theme/palettes/*` + `docserver-base.css` 禁用 search transition）。`location$` 与 `document$` 仅 `pinSchemeGuard()` + `syncPaletteRadios()`。顶栏分享/配色控件只在首次 `init` 挂载。`mermaid` 用 `mermaid-init.js` 按需加载。
+5. **instant 换页**：通用配色与 guard 见用户根 **`frontend-color-theme`**；本仓库 Material 专节见下文 **配色与主题（MkDocs Material）**。`mermaid` 用 `mermaid-init.js` 按需加载。
 
 ### instant 换页搜索栏闪烁（Agent 排障）
 
-| 现象 | 常见根因 | 处理 |
-| --- | --- | --- |
-| 每次点侧栏换页搜索框背景闪一下 | Material `__palette` 按 **pathname 分桶**存 localStorage；新路径上 `__md_get("__palette")` 为空，旧代码误以为「无配色」或把 body 写回构建默认再 `clearMaterialColors` | `readPaletteColor()` **优先读顶栏** `input[name="__palette"]:checked`（instant 不销毁顶栏）；并镜像 `docserver-scheme` 全站键；`docserver-boot.js` 尽早写 `data-docserver-scheme-guard` |
-| 改 JS/CSS 仍闪 | example 服务 `dist/` 未重建或浏览器缓存 | 重跑/等 watch 构建，`Ctrl+F5` |
-| 顶栏偶发闪、搜索必闪 | 仅用 `body[data-md-color-scheme]` 画顶栏/搜索，与 guard 规则打架 | 自定义 palette（J 等）顶栏/搜索 **只写 guard 选择器**；勿在 `document$` 用 MutationObserver 回写 body |
-| 验收 | 浅色方案 J 连点 5 个不同层级页面 | 搜索框白底/边框无可见闪变；深色模式同理 |
+通用排障见 **`frontend-color-theme`**。本仓库对照 **配色与主题** 表中 Material 项；验收：浅色 J 连点 5 个不同层级页面，搜索框无闪变。若改 JS/CSS 仍闪，见上文 **Example 预览**。
+
+## 配色与主题（MkDocs Material）
+
+通用两层模型、scheme-guard、换页禁令见 **`~/.cursor/skills/frontend-color-theme/SKILL.md`**。本仓库映射与专有行为如下。
+
+### 文件与键名
+
+| 路径 / 键 | 职责 |
+| --- | --- |
+| `src/mkdocs_config.py` | 构建默认 palette（**J**：grey+blue / black+light blue）；`extra_css` / `extra_javascript` 顺序 |
+| `theme/palettes/<id>-*.css` | J/I/K/L/C 像素级样式；前缀 `html[data-docserver-style="<id>"]` |
+| `theme/docserver-base.css` | 通用 UX；顶栏 search `transition: none` |
+| `theme/javascripts/docserver-boot.js` | 首屏写 `data-docserver-style`、`data-docserver-scheme-guard` |
+| `theme/javascripts/theme-switcher.js` | `STYLES`、`STYLES_WITH_PALETTE_CSS`、instant 回调 |
+| `localStorage` `docserver-style` / `docserver-scheme` | 全站 style 与 scheme 镜像 |
+| `THEME-PALETTES.md` | 选型表 A–L、字体 F1–F4 |
+
+构建默认 J；运行时可切 J/I/K/L/C/B/A/D/E/F/G/H。**J/I/K/L/C** 有 `palettes/*.css`；**B–H** 用 Material 内置 primary/accent（连字符 slug）。
+
+### Material 专有
+
+- 明暗属性：`data-md-color-scheme`（`default` / `slate`）；主色 `data-md-color-primary` / `data-md-color-accent`。
+- `__palette` 按 **pathname 分桶**存 localStorage；`readPaletteColor()` **优先**顶栏 `input[name="__palette"]:checked`。
+- 有 palette CSS 时不再向 body 写 primary/accent（`STYLES_WITH_PALETTE_CSS` + `clearMaterialColors`）。
+- **顶栏/搜索** CSS 只认 `html[data-docserver-style][data-docserver-scheme-guard]`，不用仅绑 `body[data-md-color-scheme]`。
+- instant：`location$` / `document$` 仅 `pinSchemeGuard()` + `syncPaletteRadios()`；`document$` 可 `refreshDocserverColors()`，**禁止**改 body 配色或重挂顶栏。
+
+### 新增 palette（本仓库）
+
+1. `THEME-PALETTES.md` 补选型；2. `theme/palettes/<id>-<name>.css`；3. `theme-switcher.js` 注册 `STYLES` / `STYLE_ORDER` / `STYLES_WITH_PALETTE_CSS`；4. 重建 `dist/`；5. J 浅色连点 5 页验收。仅改构建默认：改 `mkdocs_config.py` 的 `palette` 两段。
 
 ## 硬性要求
 
