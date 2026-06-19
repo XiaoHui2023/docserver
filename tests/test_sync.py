@@ -31,6 +31,7 @@ from watch import (  # noqa: E402
     _format_changed_files,
     _rebuild_until_stable,
     _snapshot,
+    _wait_for_settle,
     _watchable_source_file,
 )
 
@@ -581,6 +582,49 @@ class TestDocserver(unittest.TestCase):
 
         self.assertEqual(_with_sync_io_retry(flaky, path=path), "ok")
         self.assertEqual(calls, 3)
+
+    @patch("watch.time.sleep")
+    def test_wait_for_settle_returns_when_unchanged(self, mock_sleep) -> None:
+        path = Path("/a")
+        baseline = {path: 1.0}
+        with patch("watch._snapshot", return_value=baseline):
+            result = _wait_for_settle(
+                watch_roots=[path],
+                source_set=set(),
+                baseline=baseline,
+                settle=1.0,
+            )
+        self.assertEqual(result, baseline)
+        mock_sleep.assert_called_once_with(1.0)
+
+    @patch("watch.time.sleep")
+    def test_wait_for_settle_retries_while_still_changing(self, mock_sleep) -> None:
+        path = Path("/a")
+        snap_v1 = {path: 1.0}
+        snap_v2 = {path: 2.0}
+        snap_v3 = {path: 2.0}
+        with patch("watch._snapshot", side_effect=[snap_v2, snap_v3]):
+            result = _wait_for_settle(
+                watch_roots=[path],
+                source_set=set(),
+                baseline=snap_v1,
+                settle=0.5,
+            )
+        self.assertEqual(result, snap_v3)
+        self.assertEqual(mock_sleep.call_count, 2)
+        mock_sleep.assert_called_with(0.5)
+
+    @patch("watch.time.sleep")
+    def test_wait_for_settle_skips_sleep_when_zero(self, mock_sleep) -> None:
+        baseline = {Path("/a"): 1.0}
+        result = _wait_for_settle(
+            watch_roots=[],
+            source_set=set(),
+            baseline=baseline,
+            settle=0,
+        )
+        self.assertEqual(result, baseline)
+        mock_sleep.assert_not_called()
 
     @patch("watch.time.sleep")
     def test_rebuild_until_stable_retries_on_unexpected_error(self, mock_sleep) -> None:

@@ -108,6 +108,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="与 --watch 合用：轮询间隔（秒），默认 2",
     )
     parser.add_argument(
+        "--settle",
+        type=float,
+        default=1.0,
+        metavar="SEC",
+        help="与 --watch 合用：检测到变更后等待稳定时间（秒），默认 1",
+    )
+    parser.add_argument(
         "--skip-initial",
         action="store_true",
         help="与 --watch 合用：跳过启动时首次构建",
@@ -174,6 +181,7 @@ def _run_watch(args: argparse.Namespace) -> int:
                 site_url=args.site_url,
                 site_name=args.site_name,
                 interval=args.interval,
+                settle=args.settle,
                 verbose=args.verbose,
                 skip_initial=args.skip_initial,
             )

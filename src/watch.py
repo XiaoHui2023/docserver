@@ -183,6 +183,24 @@ def _format_changed_files(
   return lines
 
 
+def _wait_for_settle(
+  *,
+  watch_roots: list[Path],
+  source_set: set[Path],
+  baseline: dict[Path, float],
+  settle: float,
+) -> dict[Path, float]:
+  """变更后等待 settle 秒再采样；与变更初快照一致则视为稳定。"""
+  if settle <= 0:
+    return baseline
+  while True:
+    time.sleep(settle)
+    current = _snapshot(watch_roots, source_roots=source_set)
+    if not _diff_snapshots(baseline, current):
+      return current
+    baseline = current
+
+
 def watch_and_build(
   sources: Path | Sequence[Path],
   out_root: Path,
@@ -192,6 +210,7 @@ def watch_and_build(
   site_url: str | None = None,
   site_name: str = "文档",
   interval: float = 2.0,
+  settle: float = 1.0,
   verbose: bool = False,
   skip_initial: bool = False,
 ) -> None:
@@ -212,7 +231,10 @@ def watch_and_build(
   note("监视引擎: theme/、构建配置等")
   note(f"输出目录: {out_root.resolve()}")
   note(f"构建缓存: {resolve_cache_dir(cache_dir)}")
-  note(f"子路径: {base_url!r}  监视间隔: {interval} 秒（Ctrl+C 结束）")
+  note(
+    f"子路径: {base_url!r}  监视间隔: {interval} 秒  "
+    f"稳定时间: {settle} 秒（Ctrl+C 结束）"
+  )
 
   def _run_rebuild() -> None:
     note(f"构建开始: {format_timestamp()}")
@@ -249,9 +271,16 @@ def watch_and_build(
       current = _snapshot(watch_roots, source_roots=source_set)
       changed_lines = _format_changed_files(last, current, roots, watch_roots)
       if changed_lines:
-        note("检测到变更，正在重新构建…")
+        note("检测到变更，等待稳定…")
         for line in changed_lines:
           note(line)
+        _wait_for_settle(
+          watch_roots=watch_roots,
+          source_set=source_set,
+          baseline=current,
+          settle=settle,
+        )
+        note("文件已稳定，正在重新构建…")
         last = _drain_rebuilds()
     except Exception as exc:
       note(f"监视异常，{fail_pause:g}s 后继续: {exc}")
