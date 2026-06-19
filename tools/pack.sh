@@ -58,7 +58,13 @@ apply_staticx_linux() {
     echo "错误: Linux 下 staticx 需要系统命令 patchelf（例如: sudo apt install patchelf）。" >&2
     exit 1
   fi
-  "${PYTHON_CMD[@]}" -m pip install -q staticx
+  local venv_bin
+  venv_bin="$(dirname "${PYTHON_CMD[0]}")"
+  export PATH="$venv_bin:$PATH"
+  # staticx wheels embed a musl bootloader that old objcopy versions can mangle
+  # on Ubuntu 16.04/CentOS 7 class builders. Build staticx from source instead.
+  "${PYTHON_CMD[@]}" -m pip install -q --upgrade --force-reinstall scons
+  "${PYTHON_CMD[@]}" -m pip install -q --upgrade --force-reinstall --no-cache-dir --no-build-isolation --no-binary=staticx staticx
   local staticx="$ROOT/.venv/bin/staticx"
   if [[ ! -x "$staticx" ]]; then
     echo "错误: 未找到可执行的 .venv/bin/staticx。" >&2
@@ -70,9 +76,22 @@ apply_staticx_linux() {
   local tmp_out="$ROOT/dist/.${DIST_NAME}-staticx.tmp"
   rm -f "$tmp_out"
   echo "==> staticx: $pyi_keep -> $DIST_NAME"
-  "$staticx" "$pyi_keep" "$tmp_out"
+  if ! "$staticx" "$pyi_keep" "$tmp_out"; then
+    rm -f "$tmp_out"
+    echo "==> staticx 失败，重试 staticx --no-compress"
+    if ! "$staticx" --no-compress "$pyi_keep" "$tmp_out"; then
+      echo "错误: staticx 与 staticx --no-compress 均失败；不得跳过 staticx，请检查 patchelf、依赖库与构建日志。" >&2
+      exit 1
+    fi
+  fi
   mv -f "$tmp_out" "$pyi_out"
   chmod +x "$pyi_out"
+  local first_load_vaddr
+  first_load_vaddr="$(readelf -Wl "$pyi_out" | awk '$1 == "LOAD" { print $3; exit }')"
+  if [[ "$first_load_vaddr" == "0x0000000000000000" ]]; then
+    echo "错误: staticx 产物 ELF 被旧 objcopy 损坏（首个 LOAD VirtAddr 为 0x0）；请确保 staticx 从源码构建，且不要使用 PyPI wheel bootloader。" >&2
+    exit 1
+  fi
   echo "完成: $pyi_out（staticx 自解压包；请在目标机实测）"
   echo "      $pyi_keep（仅 PyInstaller；staticx 失败时可单独运行排查）"
 }
@@ -93,7 +112,13 @@ build_binary() {
     exit 1
   fi
   case "$(uname -s 2>/dev/null || true)" in
-    Linux) apply_staticx_linux ;;
+    Linux)
+      if [[ "${PACK_LINUX_SKIP_STATICX:-}" == "1" ]]; then
+        echo "完成: $ROOT/dist/${DIST_NAME}（PACK_LINUX_SKIP_STATICX=1，已显式跳过 staticx）"
+      else
+        apply_staticx_linux
+      fi
+      ;;
     *) echo "完成: $ROOT/dist/${DIST_NAME}（非 Linux，跳过 staticx）" ;;
   esac
 }
@@ -114,8 +139,12 @@ build_binary
 echo "==> 组装离线压缩包 -> dist/docserver-offline-*.tar.gz"
 bash "$ROOT/tools/stage-offline.sh"
 
+echo "==> 组装版本化发布压缩包"
+"${PYTHON_CMD[@]}" "$ROOT/tools/bundle_release.py"
+
 echo ""
 echo "完成。产物（均在 dist/）："
 echo "  dist/docserver-sync                  # 本机可直接运行"
 echo "  dist/docserver-offline-*.tar.gz      # 拷到内网机解压即用"
+echo "  dist/docserver-<version>-<platform>.tar.gz  # GitHub Release 附件"
 echo "下一步：将 tar.gz 拷到离线机解压，运行 bash run.sh（默认构建 demo/），再托管 output/site/"

@@ -104,6 +104,7 @@ src/            ──生成──►  .docserver-cache/mkdocs.yml
 - 构建依赖 Python 包：`mkdocs-material`、`mkdocs-awesome-pages-plugin`（见 `pyproject.toml`）。
 - 已移除 VitePress / Node 构建链。
 - 仓库 `.cursor/skills/` 仅三件套。
+- **GitHub Release（滚动自动发布）**：push `main` 触发 `.github/workflows/release.yml`；Ubuntu 16.04 容器内 PyInstaller + staticx；build job 用 `dist/docserver-sync` 跑 `demo/` 完整 example；通过后 publish 覆盖 `v{pyproject.version}` tag 与同名 Release 附件（`dist/docserver-sync`、`dist/docserver-<version>-linux.tar.gz`）。版本默认不改，除非用户明确要求 semver bump。
 
 ## 备忘与待定
 

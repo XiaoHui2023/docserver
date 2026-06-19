@@ -38,8 +38,13 @@ echo ==^> 组装离线压缩包 -^> dist\docserver-offline-win-amd64.zip
 call "%~dp0stage-offline.bat"
 
 echo.
+echo ==^> 组装版本化发布压缩包
+"%PY%" "%~dp0bundle_release.py"
+
+echo.
 echo 完成。产物（均在 dist\）:
 echo   dist\docserver-sync.exe
 echo   dist\docserver-offline-win-amd64.zip
+echo   dist\docserver-^<version^>-windows.zip
 echo 下一步: 将 zip 拷到离线机解压后运行 run.bat
 pause
