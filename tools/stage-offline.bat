@@ -7,6 +7,7 @@ if exist "dist\staging" rmdir /s /q "dist\staging"
 mkdir "dist\staging\dist"
 copy /y "dist\docserver-sync.exe" "dist\staging\dist\docserver-sync.exe" >nul
 copy /y "run.bat" "dist\staging\" >nul
+copy /y "run-lifecycle.ps1" "dist\staging\" >nul
 xcopy /e /i /q "demo" "dist\staging\demo\" >nul
 xcopy /e /i /q "theme" "dist\staging\theme\" >nul
 if exist "cache\plugin\privacy" (

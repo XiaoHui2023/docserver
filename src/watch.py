@@ -23,6 +23,17 @@ def _watchable_source_file(path: Path) -> bool:
   return path.suffix.lower() in WATCH_SOURCE_SUFFIXES
 
 
+def _is_under_any(path: Path, roots: set[Path]) -> bool:
+  path_r = path.resolve()
+  for root in roots:
+    try:
+      path_r.relative_to(root.resolve())
+      return True
+    except ValueError:
+      continue
+  return False
+
+
 def _source_roots(sources: Path | Sequence[Path]) -> list[Path]:
   if isinstance(sources, Path):
     return [sources.resolve()]
@@ -33,14 +44,20 @@ def _snapshot(
   roots: list[Path],
   *,
   source_roots: set[Path] | None = None,
+  excluded_roots: set[Path] | None = None,
 ) -> dict[Path, float]:
   source_set = source_roots or set()
+  excluded_set = excluded_roots or set()
   snap: dict[Path, float] = {}
   for root in roots:
     root_r = root.resolve()
+    if _is_under_any(root_r, excluded_set):
+      continue
     filter_source = root_r in source_set
     if root.is_file():
       if filter_source and not _watchable_source_file(root):
+        continue
+      if _is_under_any(root.resolve(), excluded_set):
         continue
       try:
         snap[root.resolve()] = root.stat().st_mtime
@@ -54,6 +71,8 @@ def _snapshot(
         rel = path.relative_to(root_r)
         if _skip_watch_rel(rel):
           continue
+        if _is_under_any(path, excluded_set):
+          continue
         if not _watchable_source_file(path):
           continue
         try:
@@ -65,6 +84,8 @@ def _snapshot(
       if not path.is_file():
         continue
       if any(part in _WATCH_SKIP_DIR_NAMES for part in path.parts):
+        continue
+      if _is_under_any(path, excluded_set):
         continue
       try:
         snap[path.resolve()] = path.stat().st_mtime
@@ -137,17 +158,26 @@ def _rebuild_until_stable(
   sources: list[Path],
   run_rebuild: Callable[[], None],
   fail_pause: float,
+  excluded_roots: set[Path] | None = None,
 ) -> dict[Path, float]:
   """失败时等待重试；成功后再检查构建期间是否又有变更。"""
   while True:
-    before = _snapshot(watch_roots, source_roots=source_set)
+    before = _snapshot(
+      watch_roots,
+      source_roots=source_set,
+      excluded_roots=excluded_roots,
+    )
     try:
       run_rebuild()
     except Exception as exc:
       note(f"构建失败，{fail_pause:g}s 后重试: {exc}")
       time.sleep(fail_pause)
       continue
-    after = _snapshot(watch_roots, source_roots=source_set)
+    after = _snapshot(
+      watch_roots,
+      source_roots=source_set,
+      excluded_roots=excluded_roots,
+    )
     if not _diff_snapshots(before, after):
       return after
     note("构建期间仍有变更，继续重建…")
@@ -189,13 +219,20 @@ def _wait_for_settle(
   source_set: set[Path],
   baseline: dict[Path, float],
   settle: float,
+  poll_interval: float | None = None,
+  excluded_roots: set[Path] | None = None,
 ) -> dict[Path, float]:
-  """变更后等待 settle 秒再采样；与变更初快照一致则视为稳定。"""
+  """变更后等待一段时间再采样；与变更初快照一致则视为稳定。"""
   if settle <= 0:
     return baseline
+  sleep_for = max(settle, poll_interval) if poll_interval is not None else settle
   while True:
-    time.sleep(settle)
-    current = _snapshot(watch_roots, source_roots=source_set)
+    time.sleep(sleep_for)
+    current = _snapshot(
+      watch_roots,
+      source_roots=source_set,
+      excluded_roots=excluded_roots,
+    )
     if not _diff_snapshots(baseline, current):
       return current
     baseline = current
@@ -218,6 +255,8 @@ def watch_and_build(
   roots = _source_roots(sources)
   source_set = {r.resolve() for r in roots}
   watch_roots = [*roots, *engine_watch_paths()]
+  cache_root = resolve_cache_dir(cache_dir)
+  excluded_roots = {out_root.resolve(), cache_root.resolve()}
   if len(roots) == 1:
     note(f"监视源目录: {roots[0]}")
   else:
@@ -247,7 +286,7 @@ def watch_and_build(
       site_name=site_name,
       verbose=verbose,
     )
-    rebuild_docs(config_path, out_root, verbose=verbose)
+    rebuild_docs(config_path, out_root, verbose=verbose, live_publish=True)
     note(f"构建结束: {format_timestamp()}")
 
   fail_pause = max(0.5, min(interval, 2.0))
@@ -256,6 +295,7 @@ def watch_and_build(
     return _rebuild_until_stable(
       watch_roots=watch_roots,
       source_set=source_set,
+      excluded_roots=excluded_roots,
       sources=roots,
       run_rebuild=_run_rebuild,
       fail_pause=fail_pause,
@@ -264,11 +304,19 @@ def watch_and_build(
   if not skip_initial:
     last = _drain_rebuilds()
   else:
-    last = _snapshot(watch_roots, source_roots=source_set)
+    last = _snapshot(
+      watch_roots,
+      source_roots=source_set,
+      excluded_roots=excluded_roots,
+    )
   while True:
     try:
       time.sleep(interval)
-      current = _snapshot(watch_roots, source_roots=source_set)
+      current = _snapshot(
+        watch_roots,
+        source_roots=source_set,
+        excluded_roots=excluded_roots,
+      )
       changed_lines = _format_changed_files(last, current, roots, watch_roots)
       if changed_lines:
         note("检测到变更，等待稳定…")
@@ -277,8 +325,10 @@ def watch_and_build(
         _wait_for_settle(
           watch_roots=watch_roots,
           source_set=source_set,
+          excluded_roots=excluded_roots,
           baseline=current,
           settle=settle,
+          poll_interval=max(settle, interval),
         )
         note("文件已稳定，正在重新构建…")
         last = _drain_rebuilds()

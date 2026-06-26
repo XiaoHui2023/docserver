@@ -29,6 +29,7 @@ htmlcov/
 dist/
 dist-*/
 .docserver-cache/
+.docserver-sync.pid
 # 旧版在 -o 旁生成的临时目录（残留；新版已迁入缓存）
 *.staging/
 *.old/

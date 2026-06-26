@@ -14,7 +14,7 @@ from paths import (
   validate_cache_staging,
   validate_out_and_cache,
 )
-from publish import publish_staging_to_out
+from publish import publish_staging_to_out, publish_staging_to_out_live
 from session_log import format_timestamp, note
 from staging import sync_to_work
 from theme_assets import install_theme_assets
@@ -129,11 +129,15 @@ def _build_to_staging_and_publish(
   out_root: Path,
   *,
   verbose: bool = False,
+  live_publish: bool = False,
 ) -> None:
   cache_root = config_path.parent.resolve()
   staging = staging_dir_for(cache_root)
   validate_cache_staging(cache_root, staging)
   _run_mkdocs(config_path, staging, verbose=verbose, clean_site=True)
+  if live_publish:
+    publish_staging_to_out_live(staging, out_root)
+    return
   publish_staging_to_out(staging, out_root, cache_root)
 
 
@@ -168,6 +172,12 @@ def rebuild_docs(
   out_root: Path,
   *,
   verbose: bool = False,
+  live_publish: bool = False,
 ) -> None:
   """监视模式下重建：写入暂存目录，成功后一次性替换输出目录。"""
-  _build_to_staging_and_publish(config_path, out_root.resolve(), verbose=verbose)
+  _build_to_staging_and_publish(
+    config_path,
+    out_root.resolve(),
+    verbose=verbose,
+    live_publish=live_publish,
+  )

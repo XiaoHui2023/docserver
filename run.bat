@@ -24,10 +24,13 @@ if defined CACHE_DIR set "EXTRA=%EXTRA% --cache-dir "%CACHE_DIR%""
 if defined LOG set "EXTRA=%EXTRA% --log "%LOG%""
 if "%WATCH%"=="1" set "EXTRA=%EXTRA% --watch"
 
+set "PIDFILE=%ROOT%.docserver-sync.pid"
+set "LIFECYCLE=%ROOT%run-lifecycle.ps1"
 set "SYNC=%ROOT%dist\docserver-sync.exe"
+
 if exist "%SYNC%" (
-  "%SYNC%" !SRC_ARGS! -o "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" %EXTRA%
-  exit /b !errorlevel!
+  set "LAUNCH_CMD="%SYNC%" !SRC_ARGS! -o "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" %EXTRA%"
+  goto :run_lifecycle
 )
 
 if not exist "%ROOT%.venv\Scripts\python.exe" call "%ROOT%update.bat"
@@ -38,5 +41,12 @@ if not exist "%PY%" (
   exit /b 1
 )
 
-"%PY%" "%ROOT%src" !SRC_ARGS! -o "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" %EXTRA%
+set "LAUNCH_CMD="%PY%" "%ROOT%src" !SRC_ARGS! -o "%OUT%" --base-url %BASE_URL% --site-name "%SITE_NAME%" %EXTRA%"
+
+:run_lifecycle
+if not exist "%LIFECYCLE%" (
+  echo 未找到 run-lifecycle.ps1
+  exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%LIFECYCLE%" -PidFile "%PIDFILE%" -CommandLine "!LAUNCH_CMD!"
 exit /b %errorlevel%

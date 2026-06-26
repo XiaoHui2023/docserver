@@ -67,3 +67,47 @@ def publish_staging_to_out(
 
   if backup.exists():
     shutil.rmtree(backup)
+
+
+def _staged_files(staging: Path) -> list[Path]:
+  files = [path for path in staging.rglob("*") if path.is_file()]
+  return sorted(
+    files,
+    key=lambda path: (
+      path.suffix.lower() in {".html", ".htm"},
+      str(path.relative_to(staging)).replace("\\", "/"),
+    ),
+  )
+
+
+def publish_staging_to_out_live(
+  staging_root: Path,
+  out_root: Path,
+) -> None:
+  """Publish for watch mode without temporarily removing the served directory."""
+  staging = staging_root.resolve()
+  out = out_root.resolve()
+  if not staging.is_dir():
+    raise FileNotFoundError(f"构建暂存目录不存在: {staging}")
+
+  out.mkdir(parents=True, exist_ok=True)
+  staged_rels: set[Path] = set()
+  for src in _staged_files(staging):
+    rel = src.relative_to(staging)
+    staged_rels.add(rel)
+    dst = out / rel
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dst)
+
+  for cur in sorted((p for p in out.rglob("*") if p.is_file()), reverse=True):
+    rel = cur.relative_to(out)
+    if rel not in staged_rels:
+      cur.unlink()
+
+  for cur in sorted((p for p in out.rglob("*") if p.is_dir()), reverse=True):
+    try:
+      cur.rmdir()
+    except OSError:
+      pass
+
+  shutil.rmtree(staging)

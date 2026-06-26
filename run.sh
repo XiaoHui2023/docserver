@@ -17,6 +17,7 @@ LOG=
 WATCH=0
 
 SYNC="$ROOT/dist/docserver-sync"
+PIDFILE="$ROOT/.docserver-sync.pid"
 ARGS=(
   -s "${SOURCES[@]}"
   -o "$OUT"
@@ -36,4 +37,53 @@ if [[ -n "$LOG" ]]; then
   ARGS+=(--log "$LOG")
 fi
 
-exec "$SYNC" "${ARGS[@]}"
+_kill_sync_group() {
+  local pid="$1"
+  [[ -z "$pid" ]] && return 0
+  kill -0 "$pid" 2>/dev/null || return 0
+  kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
+  local waited=0
+  while kill -0 "$pid" 2>/dev/null && [[ $waited -lt 50 ]]; do
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -KILL -"$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true
+  fi
+}
+
+_stop_stale_sync() {
+  [[ -f "$PIDFILE" ]] || return 0
+  local old=""
+  old="$(<"$PIDFILE")" || true
+  rm -f "$PIDFILE"
+  if [[ -n "$old" ]]; then
+    echo "停止上次未退出的 docserver-sync (PID $old)…" >&2
+    _kill_sync_group "$old"
+  fi
+}
+
+_cleanup_trap() {
+  trap - EXIT INT TERM HUP
+  if [[ -n "${SYNC_PID:-}" ]]; then
+    _kill_sync_group "$SYNC_PID"
+    SYNC_PID=
+  fi
+  rm -f "$PIDFILE"
+}
+
+trap _cleanup_trap EXIT INT TERM HUP
+_stop_stale_sync
+
+if command -v setsid >/dev/null 2>&1; then
+  setsid "$SYNC" "${ARGS[@]}" &
+else
+  "$SYNC" "${ARGS[@]}" &
+fi
+SYNC_PID=$!
+echo "$SYNC_PID" >"$PIDFILE"
+
+wait "$SYNC_PID"
+exit_code=$?
+SYNC_PID=
+exit "$exit_code"

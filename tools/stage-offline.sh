@@ -20,6 +20,9 @@ else
 fi
 
 cp -f "$ROOT/run.sh" "$STAGE/"
+if [[ -f "$ROOT/run-lifecycle.ps1" ]]; then
+  cp -f "$ROOT/run-lifecycle.ps1" "$STAGE/"
+fi
 cp -a "$ROOT/demo" "$STAGE/"
 cp -a "$ROOT/theme" "$STAGE/"
 if [[ -d "$ROOT/cache/plugin/privacy" ]]; then

@@ -27,10 +27,21 @@ rm -rf "$ROOT/dist"
 
 echo "[2/4] Watch example/source + theme/ + src/ in background..."
 echo "      UI/theme changes need watch or re-run example.sh; then hard-refresh (Ctrl+F5)."
-"$PY" src -s "$ROOT/example/source" -o "$ROOT/dist" -v \
-  --site-name "$SITE_NAME" --watch --skip-initial &
+_watch_kill() {
+  local pid="$1"
+  [[ -z "$pid" ]] && return 0
+  kill -0 "$pid" 2>/dev/null || return 0
+  kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
+}
+if command -v setsid >/dev/null 2>&1; then
+  setsid "$PY" src -s "$ROOT/example/source" -o "$ROOT/dist" -v \
+    --site-name "$SITE_NAME" --watch --skip-initial &
+else
+  "$PY" src -s "$ROOT/example/source" -o "$ROOT/dist" -v \
+    --site-name "$SITE_NAME" --watch --skip-initial &
+fi
 WATCH_PID=$!
-trap 'kill "$WATCH_PID" 2>/dev/null || true' EXIT
+trap '_watch_kill "$WATCH_PID"' EXIT INT TERM HUP
 
 echo "[3/4] Open http://127.0.0.1:${PORT}/  (hard refresh after rebuild)"
 if command -v xdg-open >/dev/null 2>&1; then

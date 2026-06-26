@@ -22,7 +22,7 @@ from paths import (  # noqa: E402
     validate_cache_staging,
     validate_out_and_cache,
 )
-from publish import publish_staging_to_out  # noqa: E402
+from publish import publish_staging_to_out, publish_staging_to_out_live  # noqa: E402
 from pages import _format_pages_yaml, write_pages_files  # noqa: E402
 from session_log import log_file_path  # noqa: E402
 from scan import scan_source, scan_sources  # noqa: E402
@@ -423,6 +423,24 @@ class TestDocserver(unittest.TestCase):
             self.assertIn(md.resolve(), snap)
             self.assertNotIn(log.resolve(), snap)
 
+    def test_watch_snapshot_excludes_output_inside_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source"
+            output = source / "output" / "site"
+            output.mkdir(parents=True)
+            md = source / "index.md"
+            built = output / "index.html"
+            md.write_text("# x", encoding="utf-8")
+            built.write_text("<html></html>", encoding="utf-8")
+            source_r = source.resolve()
+            snap = _snapshot(
+                [source_r],
+                source_roots={source_r},
+                excluded_roots={output.resolve()},
+            )
+            self.assertIn(md.resolve(), snap)
+            self.assertNotIn(built.resolve(), snap)
+
     def test_watch_snapshot_includes_engine_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             theme = Path(tmp) / "theme"
@@ -519,6 +537,25 @@ class TestDocserver(unittest.TestCase):
             self.assertFalse((out / "old.txt").exists())
             self.assertFalse(publish_backup_dir(cache).exists())
 
+    def test_publish_staging_to_out_live(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            staging = Path(tmp) / "staging"
+            out = Path(tmp) / "site"
+            staging.mkdir()
+            out.mkdir()
+            (out / "old.txt").write_text("old", encoding="utf-8")
+            (out / "index.html").write_text("old html", encoding="utf-8")
+            (staging / "assets").mkdir()
+            (staging / "assets" / "main.css").write_text("css", encoding="utf-8")
+            (staging / "index.html").write_text("new html", encoding="utf-8")
+
+            publish_staging_to_out_live(staging, out)
+
+            self.assertFalse(staging.exists())
+            self.assertFalse((out / "old.txt").exists())
+            self.assertEqual((out / "index.html").read_text(encoding="utf-8"), "new html")
+            self.assertEqual((out / "assets" / "main.css").read_text(encoding="utf-8"), "css")
+
     def test_staging_dir_inside_cache_not_beside_out(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             cache = (Path(tmp) / ".docserver-cache").resolve()
@@ -613,6 +650,21 @@ class TestDocserver(unittest.TestCase):
         self.assertEqual(result, snap_v3)
         self.assertEqual(mock_sleep.call_count, 2)
         mock_sleep.assert_called_with(0.5)
+
+    @patch("watch.time.sleep")
+    def test_wait_for_settle_uses_poll_interval_when_larger(self, mock_sleep) -> None:
+        path = Path("/a")
+        baseline = {path: 1.0}
+        with patch("watch._snapshot", return_value=baseline):
+            result = _wait_for_settle(
+                watch_roots=[path],
+                source_set=set(),
+                baseline=baseline,
+                settle=1.0,
+                poll_interval=600.0,
+            )
+        self.assertEqual(result, baseline)
+        mock_sleep.assert_called_once_with(600.0)
 
     @patch("watch.time.sleep")
     def test_wait_for_settle_skips_sleep_when_zero(self, mock_sleep) -> None:
