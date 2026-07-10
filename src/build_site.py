@@ -14,6 +14,7 @@ from paths import (
   validate_cache_staging,
   validate_out_and_cache,
 )
+from process_priority import background_priority, run_background
 from publish import publish_staging_to_out, publish_staging_to_out_live
 from session_log import format_timestamp, note
 from staging import sync_to_work
@@ -46,7 +47,8 @@ def _run_mkdocs_inprocess(argv: list[str], *, verbose: bool) -> None:
   saved_argv = sys.argv
   sys.argv = ["mkdocs", *argv]
   try:
-    exit_code = cli(standalone_mode=False)
+    with background_priority():
+      exit_code = cli(standalone_mode=False)
   except SystemExit as exc:
     exit_code = exc.code if isinstance(exc.code, int) else 1
   finally:
@@ -72,7 +74,7 @@ def _run_mkdocs(
   cmd = [sys.executable, "-m", "mkdocs", *argv]
   if verbose:
     print("执行:", " ".join(cmd))
-  subprocess.run(cmd, check=True)
+  run_background(cmd, verbose=False)
 
 
 def _source_roots(source: Path | Sequence[Path]) -> list[Path]:

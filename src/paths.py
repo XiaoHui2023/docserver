@@ -8,8 +8,16 @@ IGNORE_DIR_NAMES = frozenset({
   ".venv",
   "node_modules",
   "__pycache__",
+  ".cache",
   "dist",
+  "dist-nav-debug",
+  "dist.work",
   "build",
+  "cache",
+  "output",
+  "site",
+  "site-staging",
+  "site-out-backup",
   ".docserver-cache",
 })
 # GNU Make 在 Windows 等环境下可能在工作目录留下的临时文件，勿当作文档内容

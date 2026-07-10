@@ -88,6 +88,9 @@ def iter_source_files(source_root: Path) -> Iterator[Path]:
       logical = logical_dir / child.name
       try:
         if child.is_dir():
+          rel = logical.relative_to(source_root)
+          if any(part in IGNORE_DIR_NAMES for part in rel.parts):
+            continue
           yield from walk(logical, child, next_ancestors)
         elif child.is_file():
           yield logical

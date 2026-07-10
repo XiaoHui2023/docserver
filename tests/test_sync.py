@@ -217,7 +217,22 @@ class TestDocserver(unittest.TestCase):
             self.assertTrue((work / "docs" / "index.md").is_file())
             self.assertTrue((work / "docs" / "logo.png").is_file())
 
-    @unittest.skipUnless(_can_create_symlink(), "当前环境无法创建软链接")
+    def test_scan_skips_generated_directories_before_recursing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "src"
+            src.mkdir()
+            (src / "README.md").write_text("# Hi\n", encoding="utf-8")
+            generated = src / "output" / "site"
+            generated.mkdir(parents=True)
+            (generated / "stale.md").write_text("# Stale\n", encoding="utf-8")
+
+            entries = scan_source(src)
+            rels = {e.rel_source for e in entries}
+
+        self.assertIn(Path("README.md"), rels)
+        self.assertNotIn(Path("output/site/stale.md"), rels)
+
+    @unittest.skipUnless(_can_create_symlink(), "can create directory symlinks")
     def test_scan_follows_directory_symlink(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             shared = Path(tmp) / "shared"
@@ -515,6 +530,18 @@ class TestDocserver(unittest.TestCase):
             build_site._run_mkdocs(Path("mkdocs.yml"), Path("out"), verbose=False)
         mock_inprocess.assert_called_once()
         mock_run.assert_not_called()
+
+    @patch("build_site.run_background")
+    def test_mkdocs_subprocess_runs_as_background_build(self, mock_run_background) -> None:
+        import build_site
+
+        with patch.object(build_site.sys, "frozen", False, create=True):
+            build_site._run_mkdocs(Path("mkdocs.yml"), Path("out"), verbose=False)
+
+        cmd = mock_run_background.call_args.args[0]
+        self.assertEqual(cmd[:3], [sys.executable, "-m", "mkdocs"])
+        self.assertIn("build", cmd)
+        self.assertIn("mkdocs.yml", cmd)
 
     def test_publish_staging_to_out(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
