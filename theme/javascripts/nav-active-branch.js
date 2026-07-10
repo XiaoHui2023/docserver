@@ -5,6 +5,14 @@
     return document.querySelector(".md-sidebar--primary .md-nav--primary");
   }
 
+  function primaryScrollEl() {
+    var sidebar = document.querySelector(".md-sidebar--primary");
+    if (!sidebar) {
+      return null;
+    }
+    return sidebar.querySelector(".md-sidebar__scrollwrap");
+  }
+
   function isNavBranchToggle(toggle) {
     return toggle && toggle.id && toggle.id.indexOf("__nav") === 0;
   }
@@ -43,7 +51,37 @@
     }
   }
 
-  function syncNavExpandToActiveNow() {
+  function elementTopInScroll(el, child) {
+    var elRect = el.getBoundingClientRect();
+    var childRect = child.getBoundingClientRect();
+    return childRect.top - elRect.top + el.scrollTop;
+  }
+
+  function hasChildNav(item) {
+    return !!item.querySelector(":scope > nav.md-nav");
+  }
+
+  function scrollActiveIntoView(link) {
+    var el = primaryScrollEl();
+    var item = link ? link.closest(".md-nav__item") : null;
+    if (!el || !item) {
+      return;
+    }
+
+    var target = hasChildNav(item) ? item : link;
+    var margin = 16;
+    var top = elementTopInScroll(el, target) - margin;
+    var bottom =
+      elementTopInScroll(el, target) + target.getBoundingClientRect().height + margin;
+    var viewTop = el.scrollTop;
+    var viewBottom = viewTop + el.clientHeight;
+
+    if (top < viewTop || bottom > viewBottom) {
+      el.scrollTop = Math.max(0, top);
+    }
+  }
+
+  function syncNavExpandToActiveNow(options) {
     var nav = primaryNav();
     if (!nav) {
       return;
@@ -52,6 +90,9 @@
     var active = activePageLink(nav);
     if (active) {
       expandAncestorsOf(active);
+      if (!options || options.scroll !== false) {
+        scrollActiveIntoView(active);
+      }
     }
   }
 
@@ -69,6 +110,7 @@
   }
 
   function init() {
+    syncNavExpandToActive();
     bindInstant();
   }
 

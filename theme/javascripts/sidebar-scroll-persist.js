@@ -3,6 +3,7 @@
 
   var primaryScrollTop = 0;
   var hasPrimaryScroll = false;
+  var pendingRestorePath = null;
 
   function primaryScrollEl() {
     var sidebar = document.querySelector(".md-sidebar--primary");
@@ -19,6 +20,29 @@
     }
     primaryScrollTop = el.scrollTop;
     hasPrimaryScroll = true;
+  }
+
+  function normalizePath(pathname) {
+    var path = pathname || "/";
+    try {
+      path = decodeURIComponent(path);
+    } catch (e) {
+      path = pathname || "/";
+    }
+    if (path.length > 1 && path.charAt(path.length - 1) === "/") {
+      path = path.slice(0, -1);
+    }
+    if (path === "/index.html") {
+      return "/";
+    }
+    if (path.length > "/index.html".length && path.endsWith("/index.html")) {
+      path = path.slice(0, -"/index.html".length) || "/";
+    }
+    return path || "/";
+  }
+
+  function currentPath() {
+    return normalizePath(window.location.pathname);
   }
 
   function restorePrimaryScroll() {
@@ -53,6 +77,14 @@
     }
   }
 
+  function targetPath(anchor) {
+    try {
+      return normalizePath(new URL(anchor.getAttribute("href"), window.location.href).pathname);
+    } catch (e) {
+      return null;
+    }
+  }
+
   function bindScrollMemory() {
     var el = primaryScrollEl();
     if (!el || el.dataset.docserverScrollBound) {
@@ -82,7 +114,14 @@
         if (!anchor || !isInternalNavLink(anchor)) {
           return;
         }
-        rememberPrimaryScroll();
+        var target = targetPath(anchor);
+        if (target && target === currentPath()) {
+          pendingRestorePath = target;
+          rememberPrimaryScroll();
+        } else {
+          pendingRestorePath = null;
+          hasPrimaryScroll = false;
+        }
       },
       true
     );
@@ -90,7 +129,10 @@
 
   function onInstantPage() {
     bindScrollMemory();
-    restorePrimaryScroll();
+    if (pendingRestorePath && pendingRestorePath === currentPath()) {
+      restorePrimaryScroll();
+    }
+    pendingRestorePath = null;
   }
 
   function bindInstant() {
