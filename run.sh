@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-# 源目录（可多个，按顺序合并；后者覆盖同路径文件）
+# Source directories. Multiple entries are merged in order; later entries override
+# the same destination path from earlier entries.
 SOURCES=(
   demo
 )
@@ -14,11 +16,43 @@ SITE_NAME="docserver 示例"
 SITE_URL=
 LOG=
 LOG_LEVEL=INFO
-# 1=持续监视源与 theme 变更并重建；0=仅构建一次后退出（解压后快速体验）
+# 1 = watch and rebuild; 0 = build once and exit.
 WATCH=0
+# Polling interval in seconds when WATCH=1. Also controls retry wait after
+# recoverable watch/build errors.
+INTERVAL=2
+# Optional explicit instance id. By default the instance is derived from source,
+# output, base URL, site name, and site URL.
+DOCSERVER_INSTANCE="${DOCSERVER_INSTANCE:-}"
 
 SYNC="$ROOT/dist/docserver-sync"
-PIDFILE="$ROOT/.docserver-sync.pid"
+
+_hash_key() {
+  local key="$1"
+  if command -v cksum >/dev/null 2>&1; then
+    printf '%s' "$key" | cksum | awk '{ print $1 }'
+  else
+    printf '%s' "$key" | tr -c 'A-Za-z0-9_.-' '_'
+  fi
+}
+
+_instance_key() {
+  if [[ -n "$DOCSERVER_INSTANCE" ]]; then
+    printf '%s' "$DOCSERVER_INSTANCE"
+    return
+  fi
+  printf '%s' "${SOURCES[*]}|$OUT|$BASE_URL|$SITE_NAME|$SITE_URL"
+}
+
+INSTANCE_KEY="$(_instance_key)"
+INSTANCE_ID="$(_hash_key "$INSTANCE_KEY")"
+if [[ -n "$CACHE_DIR" ]]; then
+  EFFECTIVE_CACHE_DIR="$CACHE_DIR"
+else
+  EFFECTIVE_CACHE_DIR=".docserver-cache/$INSTANCE_ID"
+fi
+PIDFILE="$EFFECTIVE_CACHE_DIR/.docserver-sync.pid"
+
 ARGS=(
   -s "${SOURCES[@]}"
   -o "$OUT"
@@ -27,13 +61,12 @@ ARGS=(
 )
 if [[ "$WATCH" == "1" ]]; then
   ARGS+=(--watch)
+  ARGS+=(--interval "$INTERVAL")
 fi
 if [[ -n "$SITE_URL" ]]; then
   ARGS+=(--site-url "$SITE_URL")
 fi
-if [[ -n "$CACHE_DIR" ]]; then
-  ARGS+=(--cache-dir "$CACHE_DIR")
-fi
+ARGS+=(--cache-dir "$EFFECTIVE_CACHE_DIR")
 if [[ -n "$LOG" ]]; then
   ARGS+=(--log "$LOG")
 fi
@@ -74,21 +107,42 @@ _kill_sync_tree() {
   fi
 }
 
-_stop_stale_sync() {
+_pid_matches_sync() {
+  local pid="$1"
+  [[ -n "$pid" ]] || return 1
+  kill -0 "$pid" 2>/dev/null || return 1
+  if [[ -r "/proc/$pid/cmdline" ]]; then
+    tr '\0' '\n' <"/proc/$pid/cmdline" | grep -Fx -- "$SYNC" >/dev/null 2>&1
+    return $?
+  fi
+  if command -v ps >/dev/null 2>&1; then
+    ps -p "$pid" -o command= 2>/dev/null | grep -F -- "$SYNC" >/dev/null 2>&1
+    return $?
+  fi
+  return 1
+}
+
+_stop_same_instance() {
   [[ -f "$PIDFILE" ]] || return 0
   local old=""
   old="$(<"$PIDFILE")" || true
   rm -f "$PIDFILE"
-  if [[ -n "$old" ]]; then
-    echo "停止上次未退出的 docserver-sync (PID $old)…" >&2
+  if [[ -z "$old" ]]; then
+    return 0
+  fi
+  if _pid_matches_sync "$old"; then
+    echo "Stopping previous docserver-sync for this instance (PID $old)..." >&2
     _kill_sync_tree "$old"
+  else
+    echo "Ignoring stale pidfile for this instance (PID $old is not $SYNC)." >&2
   fi
 }
 
-_stop_stale_sync
+mkdir -p "$(dirname "$PIDFILE")"
+_stop_same_instance
 
 if [[ ! -x "$SYNC" ]]; then
-  echo "错误: 未找到可执行文件 $SYNC" >&2
+  echo "Error: executable not found: $SYNC" >&2
   exit 1
 fi
 

@@ -14,12 +14,14 @@ docserver 离线运行包
 
   SOURCES     源文档根目录，可列多个（按顺序合并）
   OUT         静态站点输出目录
-  CACHE_DIR   构建缓存目录；留空则用当前目录 .docserver-cache/
+  CACHE_DIR   run.sh 的实例缓存目录；留空则按实例使用 .docserver-cache/<实例ID>/
   BASE_URL    子路径前缀，默认 /
   SITE_NAME   站点标题
   SITE_URL    完整 canonical URL；留空则由 BASE_URL 推导
   LOG         日志目录；留空不写日志文件
   LOG_LEVEL   日志等级；默认 INFO，排查 CPU 占用时可设 DEBUG
+  INTERVAL    WATCH=1 时的轮询秒数；也作为失败/异常后的重试等待，默认 2
+  DOCSERVER_INSTANCE  run.sh 实例名；留空时由 SOURCES/OUT/BASE_URL/SITE_NAME/SITE_URL 推导
   WATCH       0=只构建一次；1=持续监视并重建（等同 --watch，启动时先构建一次）
 
 二、命令行参数（直接调用 dist/docserver-sync 时）
@@ -47,7 +49,7 @@ docserver 离线运行包
 
   可执行文件：dist/docserver-sync（Windows 为 .exe）
 
-  构建缓存：默认 .docserver-cache/（含中间 docs/、mkdocs.yml）；
+  构建缓存：run.sh 默认 .docserver-cache/<实例ID>/；直接调用 dist/docserver-sync 且省略 --cache-dir 时默认 .docserver-cache/；
   OUT 仅为可部署静态站。
 
   构建时 MkDocs 写入缓存内 site-staging/；成功后再替换 OUT，

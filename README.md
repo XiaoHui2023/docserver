@@ -87,9 +87,11 @@ cd output/site && python3 -m http.server 8080
 | `BASE_URL` | `/` | 对应 `--base-url` |
 | `SITE_URL` | 空 | 对应 `--site-url` |
 | `SITE_NAME` | `docserver 示例` | 对应 `--site-name` |
-| `CACHE_DIR` | 空 | 对应 `--cache-dir`；空则用 `.docserver-cache/` |
+| `CACHE_DIR` | 空 | `run.sh` 的实例缓存目录；空则按实例使用 `.docserver-cache/<实例ID>/` |
 | `LOG` | 空 | 对应 `--log` |
 | `LOG_LEVEL` | `INFO` | 对应 `--log-level`；排查 CPU 占用时设为 `DEBUG` |
+| `INTERVAL` | `2` | `WATCH=1` 时对应 `--interval`；也作为失败/异常后的重试等待 |
+| `DOCSERVER_INSTANCE` | 空 | `run.sh` 实例名；留空时按源/输出/URL/站点名推导，决定默认缓存目录与 pidfile |
 
 改用自有文档：把 `SOURCES` 改成你的 Markdown 根路径；日常编辑时设 `WATCH=1`。也可直接调用 `dist/docserver-sync`，参数与上表「命令行」一节相同。包内 `README.txt` 有更完整的子路径部署说明。
 
