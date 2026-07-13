@@ -14,6 +14,7 @@ from paths import IGNORE_FILE_NAMES, MANIFEST_NAME, NAV_META_NAME, docs_dir
 from collections.abc import Sequence
 
 from scan import FileEntry, scan_sources
+from session_log import debug
 
 # 由 install_theme_assets 写入，勿当作源目录镜像的一部分删除
 _RESERVED_DOC_TOP_DIRS = frozenset({"stylesheets", "javascripts"})
@@ -208,25 +209,39 @@ def sync_to_work(
   work_root = work_root.resolve()
   docs = docs_dir(work_root)
   docs.mkdir(parents=True, exist_ok=True)
+  started = time.perf_counter()
   _remove_junk_doc_files(docs)
 
   entries = scan_sources(roots)
+  scanned = time.perf_counter()
   current = {e.dest_rel for e in entries}
   _prune_orphaned_docs(docs, current)
   _remove_junk_doc_files(docs)
+  pruned = time.perf_counter()
 
+  copied = 0
+  written = 0
   for entry in entries:
     dest = docs / entry.dest_rel
     _ensure_parent_dirs(dest, docs)
     if entry.is_markdown and entry.title:
       raw = _read_source_text(entry.source)
       dest.write_text(_merge_nav_title(raw, entry.title), encoding="utf-8")
+      written += 1
     else:
       _copy_source_file(entry.source, dest)
+      copied += 1
     if verbose:
       prefix = f"[{entry.source_root.name}] " if len(roots) > 1 else ""
       print(f"  {prefix}{entry.rel_source} -> docs/{entry.dest_rel}")
 
   _write_manifest(work_root, entries)
   _write_nav_meta(docs, entries)
+  finished = time.perf_counter()
+  debug(
+    "staging.sync_to_work "
+    f"scan={scanned - started:.3f}s prune={pruned - scanned:.3f}s "
+    f"copy_write={finished - pruned:.3f}s total={finished - started:.3f}s "
+    f"entries={len(entries)} markdown_written={written} copied={copied}"
+  )
   return entries

@@ -15,6 +15,7 @@ set "BASE_URL=/"
 set "SITE_NAME=docserver 示例"
 set "SITE_URL="
 set "LOG="
+set "LOG_LEVEL=INFO"
 REM 1=持续监视并重建；0=仅构建一次后退出
 set "WATCH=0"
 
@@ -22,6 +23,7 @@ set "EXTRA="
 if defined SITE_URL set "EXTRA=--site-url %SITE_URL%"
 if defined CACHE_DIR set "EXTRA=%EXTRA% --cache-dir "%CACHE_DIR%""
 if defined LOG set "EXTRA=%EXTRA% --log "%LOG%""
+if defined LOG_LEVEL set "EXTRA=%EXTRA% --log-level %LOG_LEVEL%"
 if "%WATCH%"=="1" set "EXTRA=%EXTRA% --watch"
 
 set "PIDFILE=%ROOT%.docserver-sync.pid"

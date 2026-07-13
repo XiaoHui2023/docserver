@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from build_site import build_docs
-from session_log import session
+from session_log import session, set_log_level
 from watch import watch_and_build
 
 
@@ -126,6 +126,13 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="DIR",
         help="将输出写入该目录下的 年-月-日/时-分-秒.log；省略则不写文件",
     )
+    parser.add_argument(
+        "--log-level",
+        type=str.upper,
+        choices=("DEBUG", "INFO"),
+        default="INFO",
+        help="日志等级，默认 INFO；DEBUG 输出 watch/构建耗时诊断",
+    )
     return parser
 
 
@@ -147,6 +154,7 @@ def main() -> int:
 
 
 def _run_build(args: argparse.Namespace) -> int:
+    set_log_level(args.log_level)
     with session(args.log):
         try:
             build_docs(
@@ -171,6 +179,7 @@ def _run_build(args: argparse.Namespace) -> int:
 
 
 def _run_watch(args: argparse.Namespace) -> int:
+    set_log_level(args.log_level)
     with session(args.log):
         try:
             watch_and_build(

@@ -6,6 +6,31 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterator, TextIO
 
+_LOG_LEVELS = {
+    "DEBUG": 10,
+    "INFO": 20,
+}
+_current_log_level = _LOG_LEVELS["INFO"]
+
+
+def set_log_level(level: str) -> None:
+    global _current_log_level
+    normalized = level.upper()
+    if normalized not in _LOG_LEVELS:
+        raise ValueError(f"不支持的日志等级: {level}")
+    _current_log_level = _LOG_LEVELS[normalized]
+
+
+def get_log_level() -> str:
+    for name, value in _LOG_LEVELS.items():
+        if value == _current_log_level:
+            return name
+    return "INFO"
+
+
+def _enabled(level: str) -> bool:
+    return _LOG_LEVELS[level] >= _current_log_level
+
 
 class _TeeIO(TextIO):
     def __init__(self, stream: TextIO, log_file: TextIO) -> None:
@@ -62,3 +87,8 @@ def session(log_dir: Path | None) -> Iterator[Path | None]:
 
 def note(message: str) -> None:
     print(message, flush=True)
+
+
+def debug(message: str) -> None:
+    if _enabled("DEBUG"):
+        print(f"DEBUG {message}", flush=True)

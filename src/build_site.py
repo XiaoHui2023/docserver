@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import time
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -16,7 +17,7 @@ from paths import (
 )
 from process_priority import background_priority, run_background
 from publish import publish_staging_to_out, publish_staging_to_out_live
-from session_log import format_timestamp, note
+from session_log import debug, format_timestamp, note
 from staging import sync_to_work
 from theme_assets import install_theme_assets
 
@@ -44,6 +45,8 @@ def _run_mkdocs_inprocess(argv: list[str], *, verbose: bool) -> None:
 
   if verbose:
     print("执行: mkdocs", " ".join(argv))
+  started = time.perf_counter()
+  debug(f"mkdocs.inprocess start argv={' '.join(argv)}")
   saved_argv = sys.argv
   sys.argv = ["mkdocs", *argv]
   try:
@@ -53,6 +56,8 @@ def _run_mkdocs_inprocess(argv: list[str], *, verbose: bool) -> None:
     exit_code = exc.code if isinstance(exc.code, int) else 1
   finally:
     sys.argv = saved_argv
+  elapsed = time.perf_counter() - started
+  debug(f"mkdocs.inprocess done elapsed={elapsed:.3f}s exit_code={exit_code}")
   if exit_code:
     raise subprocess.CalledProcessError(
       exit_code if isinstance(exit_code, int) else 1,
@@ -74,7 +79,11 @@ def _run_mkdocs(
   cmd = [sys.executable, "-m", "mkdocs", *argv]
   if verbose:
     print("执行:", " ".join(cmd))
+  started = time.perf_counter()
+  debug(f"mkdocs.subprocess start argv={' '.join(cmd)}")
   run_background(cmd, verbose=False)
+  elapsed = time.perf_counter() - started
+  debug(f"mkdocs.subprocess done elapsed={elapsed:.3f}s")
 
 
 def _source_roots(source: Path | Sequence[Path]) -> list[Path]:
@@ -103,15 +112,36 @@ def prepare_work(
   validate_cache_staging(work, staging)
   work.mkdir(parents=True, exist_ok=True)
 
+  started = time.perf_counter()
   entries = sync_to_work(roots, work, clean=True, verbose=verbose)
+  synced = time.perf_counter()
   page_count = sum(1 for e in entries if e.is_markdown)
+  static_count = len(entries) - page_count
+  debug(
+    "prepare.sync_to_work "
+    f"elapsed={synced - started:.3f}s entries={len(entries)} "
+    f"pages={page_count} static={static_count}"
+  )
   install_theme_assets(work)
+  themed = time.perf_counter()
+  debug(f"prepare.install_theme_assets elapsed={themed - synced:.3f}s")
   pages_written = write_pages_files(docs_dir(work), entries)
+  pages_done = time.perf_counter()
+  debug(
+    "prepare.write_pages "
+    f"elapsed={pages_done - themed:.3f}s pages_files={pages_written}"
+  )
   config_path = write_mkdocs_yml(
     work,
     site_name=site_name,
     base_url=base_url,
     site_url=site_url,
+  )
+  configured = time.perf_counter()
+  debug(
+    "prepare.write_mkdocs_yml "
+    f"elapsed={configured - pages_done:.3f}s total={configured - started:.3f}s "
+    f"work={work} staging={staging}"
   )
 
   if verbose:
@@ -136,11 +166,26 @@ def _build_to_staging_and_publish(
   cache_root = config_path.parent.resolve()
   staging = staging_dir_for(cache_root)
   validate_cache_staging(cache_root, staging)
+  started = time.perf_counter()
   _run_mkdocs(config_path, staging, verbose=verbose, clean_site=True)
+  built = time.perf_counter()
+  debug(f"build.mkdocs elapsed={built - started:.3f}s staging={staging}")
   if live_publish:
     publish_staging_to_out_live(staging, out_root)
+    published = time.perf_counter()
+    debug(
+      "build.publish_live "
+      f"elapsed={published - built:.3f}s total={published - started:.3f}s "
+      f"out={out_root}"
+    )
     return
   publish_staging_to_out(staging, out_root, cache_root)
+  published = time.perf_counter()
+  debug(
+    "build.publish "
+    f"elapsed={published - built:.3f}s total={published - started:.3f}s "
+    f"out={out_root}"
+  )
 
 
 def build_docs(

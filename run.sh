@@ -13,6 +13,7 @@ BASE_URL=/
 SITE_NAME="docserver 示例"
 SITE_URL=
 LOG=
+LOG_LEVEL=INFO
 # 1=持续监视源与 theme 变更并重建；0=仅构建一次后退出（解压后快速体验）
 WATCH=0
 
@@ -36,6 +37,7 @@ fi
 if [[ -n "$LOG" ]]; then
   ARGS+=(--log "$LOG")
 fi
+ARGS+=(--log-level "$LOG_LEVEL")
 
 _kill_sync_group() {
   local pid="$1"

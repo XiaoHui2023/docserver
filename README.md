@@ -27,9 +27,10 @@
 | `--site-name` | | 站点标题，默认「文档」 |
 | `--verbose` | `-v` | 打印详细过程 |
 | `--watch` | | 监视源与引擎路径变更并持续构建；**启动时先完整构建一次** |
-| `--interval` | | 与 `--watch` 合用，轮询间隔（秒），默认 2 |
+| `--interval` | | 与 `--watch` 合用，轮询间隔（秒），也作为构建失败/监视异常后的重试等待；默认 2 |
 | `--skip-initial` | | 与 `--watch` 合用，跳过启动时首次构建 |
 | `--log` | | 日志目录；写入 `年-月-日/时-分-秒.log`，省略则不写文件 |
+| `--log-level` | | 日志等级，默认 `INFO`；设为 `DEBUG` 时输出 watch/构建耗时诊断 |
 
 构建时 MkDocs 只写入缓存内的 `site-staging/`，成功后再一次性替换 `{out}/`，构建过程中 `{out}/` 内容不变（便于持续预览与搜索）。除 `-o` 与 `--cache-dir`（默认 `.docserver-cache/`）外不生成其它目录。
 
@@ -40,6 +41,7 @@ python src -s example/source -o dist
 python src -s base/docs -s overlay -o dist
 python src -s example/source -o dist --base-url /docs
 python src -s example/source -o dist --watch --interval 2
+python src -s example/source -o dist --watch --interval 600 --log logs --log-level DEBUG
 python src -s example/source -o dist --watch --skip-initial
 ```
 
@@ -87,6 +89,7 @@ cd output/site && python3 -m http.server 8080
 | `SITE_NAME` | `docserver 示例` | 对应 `--site-name` |
 | `CACHE_DIR` | 空 | 对应 `--cache-dir`；空则用 `.docserver-cache/` |
 | `LOG` | 空 | 对应 `--log` |
+| `LOG_LEVEL` | `INFO` | 对应 `--log-level`；排查 CPU 占用时设为 `DEBUG` |
 
 改用自有文档：把 `SOURCES` 改成你的 Markdown 根路径；日常编辑时设 `WATCH=1`。也可直接调用 `dist/docserver-sync`，参数与上表「命令行」一节相同。包内 `README.txt` 有更完整的子路径部署说明。
 

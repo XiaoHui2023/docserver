@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import io
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -24,12 +26,13 @@ from paths import (  # noqa: E402
 )
 from publish import publish_staging_to_out, publish_staging_to_out_live  # noqa: E402
 from pages import _format_pages_yaml, write_pages_files  # noqa: E402
-from session_log import log_file_path  # noqa: E402
+from session_log import debug, log_file_path, set_log_level  # noqa: E402
 from scan import scan_source, scan_sources  # noqa: E402
 from staging import _with_sync_io_retry, sync_to_work  # noqa: E402
 from watch import (  # noqa: E402
     _format_changed_files,
     _rebuild_until_stable,
+    _retry_pause_for_interval,
     _snapshot,
     _wait_for_settle,
     _watchable_source_file,
@@ -288,6 +291,20 @@ class TestDocserver(unittest.TestCase):
 
         path = log_file_path(Path("logs"), datetime(2026, 5, 25, 14, 30, 45))
         self.assertEqual(path, Path("logs/2026-05-25/14-30-45.log"))
+
+    def test_debug_log_level(self) -> None:
+        stream = io.StringIO()
+        set_log_level("INFO")
+        with redirect_stdout(stream):
+            debug("hidden")
+        self.assertEqual(stream.getvalue(), "")
+
+        stream = io.StringIO()
+        set_log_level("DEBUG")
+        with redirect_stdout(stream):
+            debug("visible")
+        self.assertEqual(stream.getvalue(), "DEBUG visible\n")
+        set_log_level("INFO")
 
     def test_pages_yaml_quotes_at_in_filename(self) -> None:
         text = _format_pages_yaml("分组", ["index.md", "a@b.md", "dir@name"])
@@ -704,6 +721,11 @@ class TestDocserver(unittest.TestCase):
         )
         self.assertEqual(result, baseline)
         mock_sleep.assert_not_called()
+
+    def test_retry_pause_tracks_watch_interval(self) -> None:
+        self.assertEqual(_retry_pause_for_interval(2.0), 2.0)
+        self.assertEqual(_retry_pause_for_interval(600.0), 600.0)
+        self.assertEqual(_retry_pause_for_interval(0.1), 0.5)
 
     @patch("watch.time.sleep")
     def test_rebuild_until_stable_retries_on_unexpected_error(self, mock_sleep) -> None:

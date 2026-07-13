@@ -19,6 +19,7 @@ docserver 离线运行包
   SITE_NAME   站点标题
   SITE_URL    完整 canonical URL；留空则由 BASE_URL 推导
   LOG         日志目录；留空不写日志文件
+  LOG_LEVEL   日志等级；默认 INFO，排查 CPU 占用时可设 DEBUG
   WATCH       0=只构建一次；1=持续监视并重建（等同 --watch，启动时先构建一次）
 
 二、命令行参数（直接调用 dist/docserver-sync 时）
@@ -31,14 +32,16 @@ docserver 离线运行包
     --site-name         站点名
     --cache-dir         构建缓存目录
     --watch             监视变更并重建
-    --interval N        与 --watch 合用，轮询秒数，默认 2
+    --interval N        与 --watch 合用，轮询秒数；也作为失败/异常后的重试等待，默认 2
     --skip-initial      与 --watch 合用，跳过启动时首次构建
     --log DIR           过程日志目录
+    --log-level LEVEL   日志等级：INFO 或 DEBUG，默认 INFO
     -v / --verbose      详细输出
 
   示例（包根目录）：
     ./dist/docserver-sync -s demo -o output/site
     ./dist/docserver-sync -s demo -o output/site --watch
+    ./dist/docserver-sync -s demo -o output/site --watch --interval 600 --log logs --log-level DEBUG
 
 三、构建说明
 

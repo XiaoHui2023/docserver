@@ -4,10 +4,12 @@ from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from typing import Sequence
 
 from entries import dest_rel_for_source, entry_home_priority, is_entry_md
 from paths import IGNORE_DIR_NAMES, IGNORE_FILE_NAMES
+from session_log import debug
 
 
 @dataclass(frozen=True)
@@ -127,14 +129,17 @@ def _dest_rel(rel: Path, homepage_winners: dict[Path, Path]) -> Path:
 
 def scan_source(source_root: Path) -> list[FileEntry]:
   """递归扫描单个源目录中的全部文件（含静态资源）。"""
+  started = perf_counter()
   source_root = source_root.resolve()
   if not source_root.is_dir():
     raise FileNotFoundError(f"源目录不存在: {source_root}")
 
   raw: list[tuple[Path, Path]] = []
+  skipped = 0
   for path in sorted(iter_source_files(source_root), key=lambda p: str(p).replace("\\", "/")):
     rel = path.relative_to(source_root)
     if _should_skip(rel):
+      skipped += 1
       continue
     raw.append((path, rel))
 
@@ -173,11 +178,19 @@ def scan_source(source_root: Path) -> list[FileEntry]:
         title=title,
       )
     )
+  elapsed = perf_counter() - started
+  markdown_count = sum(1 for entry in entries if entry.is_markdown)
+  debug(
+    "scan.source "
+    f"elapsed={elapsed:.3f}s root={source_root} raw={len(raw)} "
+    f"entries={len(entries)} markdown={markdown_count} skipped={skipped}"
+  )
   return entries
 
 
 def scan_sources(source_roots: Sequence[Path]) -> list[FileEntry]:
   """按顺序深合并多个源目录；同相对路径后者覆盖前者。"""
+  started = perf_counter()
   if not source_roots:
     raise ValueError("至少指定一个源目录")
 
@@ -191,4 +204,10 @@ def scan_sources(source_roots: Sequence[Path]) -> list[FileEntry]:
   if not any(e.is_markdown for e in merged.values()):
     raise ValueError("合并后未找到 Markdown 文件")
 
-  return sorted(merged.values(), key=lambda e: str(e.dest_rel).replace("\\", "/"))
+  entries = sorted(merged.values(), key=lambda e: str(e.dest_rel).replace("\\", "/"))
+  elapsed = perf_counter() - started
+  debug(
+    "scan.sources "
+    f"elapsed={elapsed:.3f}s roots={len(source_roots)} entries={len(entries)}"
+  )
+  return entries
