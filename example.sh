@@ -27,21 +27,51 @@ rm -rf "$ROOT/dist"
 
 echo "[2/4] Watch example/source + theme/ + src/ in background..."
 echo "      UI/theme changes need watch or re-run example.sh; then hard-refresh (Ctrl+F5)."
-_watch_kill() {
+_child_pids() {
+  local pid="$1"
+  if command -v pgrep >/dev/null 2>&1; then
+    pgrep -P "$pid" 2>/dev/null || true
+  elif command -v ps >/dev/null 2>&1; then
+    ps -eo pid=,ppid= | awk -v ppid="$pid" '$2 == ppid { print $1 }'
+  fi
+}
+
+_kill_descendants() {
+  local pid="$1"
+  local child=""
+  for child in $(_child_pids "$pid"); do
+    _kill_descendants "$child"
+    kill -TERM "$child" 2>/dev/null || true
+  done
+}
+
+_kill_tree() {
   local pid="$1"
   [[ -z "$pid" ]] && return 0
   kill -0 "$pid" 2>/dev/null || return 0
-  kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
+  _kill_descendants "$pid"
+  kill -TERM "$pid" 2>/dev/null || true
+  local waited=0
+  while kill -0 "$pid" 2>/dev/null && [[ $waited -lt 50 ]]; do
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+  if kill -0 "$pid" 2>/dev/null; then
+    _kill_descendants "$pid"
+    kill -KILL "$pid" 2>/dev/null || true
+  fi
 }
-if command -v setsid >/dev/null 2>&1; then
-  setsid "$PY" src -s "$ROOT/example/source" -o "$ROOT/dist" -v \
-    --site-name "$SITE_NAME" --watch --skip-initial &
-else
-  "$PY" src -s "$ROOT/example/source" -o "$ROOT/dist" -v \
-    --site-name "$SITE_NAME" --watch --skip-initial &
-fi
+
+"$PY" src -s "$ROOT/example/source" -o "$ROOT/dist" -v \
+  --site-name "$SITE_NAME" --watch --skip-initial &
 WATCH_PID=$!
-trap '_watch_kill "$WATCH_PID"' EXIT INT TERM HUP
+HTTP_PID=
+_cleanup() {
+  trap - EXIT INT TERM HUP
+  [[ -n "${HTTP_PID:-}" ]] && _kill_tree "$HTTP_PID"
+  [[ -n "${WATCH_PID:-}" ]] && _kill_tree "$WATCH_PID"
+}
+trap _cleanup EXIT INT TERM HUP
 
 echo "[3/4] Open http://127.0.0.1:${PORT}/  (hard refresh after rebuild)"
 if command -v xdg-open >/dev/null 2>&1; then
@@ -51,4 +81,6 @@ elif command -v open >/dev/null 2>&1; then
 fi
 
 echo "[4/4] Static server http.server, Ctrl+C to stop"
-exec "$PY" -m http.server "$PORT" --bind 127.0.0.1 --directory "$ROOT/dist"
+"$PY" -m http.server "$PORT" --bind 127.0.0.1 --directory "$ROOT/dist" &
+HTTP_PID=$!
+wait "$HTTP_PID"

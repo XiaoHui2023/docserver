@@ -99,6 +99,7 @@ src/            ──生成──►  .docserver-cache/mkdocs.yml
 
 ## 硬性要求
 
+- 运行生命周期：`run.sh` 不得把 `docserver-sync` 后台 detach；应让 `docserver-sync` 接管脚本 PID，避免用户 kill 启动脚本后残留服务进程。示例预览若同时启动 watch 与 http.server，必须保留 shell trap 并在退出时清理两棵子进程树，不得用 `exec http.server` 绕过 trap。Python 构建子进程必须用可清理的进程组/Windows 进程树策略，父进程收到终止信号或异常退出时不能留下 `mkdocs` 子进程；Windows 启动器优先用 Job Object `KILL_ON_JOB_CLOSE`，并保留 `taskkill /T /F` 兜底。
 - 用户向文档遵守 `forbidden-doc-comment-vocabulary`。
 - `-o` 为构建产物目录，不是源目录；勿与 `-s` 混为同一目录。
 - 构建依赖 Python 包：`mkdocs-material`、`mkdocs-awesome-pages-plugin`（见 `pyproject.toml`）。

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 import io
+import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import nullcontext, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -559,6 +560,36 @@ class TestDocserver(unittest.TestCase):
         self.assertEqual(cmd[:3], [sys.executable, "-m", "mkdocs"])
         self.assertIn("build", cmd)
         self.assertIn("mkdocs.yml", cmd)
+
+    @patch("process_priority._subprocess_context", return_value=nullcontext())
+    @patch("process_priority._terminate_process_tree")
+    @patch("process_priority.subprocess.Popen")
+    def test_run_background_cleans_child_on_interrupt(
+        self, mock_popen, mock_terminate, _mock_context
+    ) -> None:
+        import process_priority
+
+        proc = mock_popen.return_value
+        proc.wait.side_effect = KeyboardInterrupt
+
+        with self.assertRaises(KeyboardInterrupt):
+            process_priority.run_background(["python", "-m", "mkdocs"], verbose=False)
+
+        mock_terminate.assert_called_once_with(proc)
+
+    @patch("process_priority._subprocess_context", return_value=nullcontext())
+    @patch("process_priority.subprocess.Popen")
+    def test_run_background_raises_on_nonzero_exit(
+        self, mock_popen, _mock_context
+    ) -> None:
+        import process_priority
+
+        mock_popen.return_value.wait.return_value = 7
+
+        with self.assertRaises(subprocess.CalledProcessError) as ctx:
+            process_priority.run_background(["python", "-m", "mkdocs"], verbose=False)
+
+        self.assertEqual(ctx.exception.returncode, 7)
 
     def test_publish_staging_to_out(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
